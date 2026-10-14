@@ -8,7 +8,6 @@
   <meta name="theme-color" content="#0B0F19">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     :root {
       --bg: #0B0F19;
@@ -177,7 +176,7 @@
   <header>
     <div class="brand">Nongle</div>
     <div class="controls">
-      <div id="status-pill"><span class="dot" id="net-dot"></span> <span id="net-text">Menghubungkan P2P...</span></div>
+      <div id="status-pill"><span class="dot" id="net-dot"></span> <span id="net-text">Connecting...</span></div>
       <label class="btn" title="Buka File PDF Presentasi">
         📂 Buka PDF / Slide
         <input type="file" id="file-input" accept="application/pdf,image/*">
@@ -213,9 +212,8 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
-    let peer = null;
+    let ws = null;
     let roomId = null;
-    const remotes = new Set();
     let mode = 'builtin';
     let currentSlide = 1;
     let totalSlides = 3;
@@ -223,109 +221,62 @@
     let isBlackout = false;
 
     const builtinSlides = [
-      { title: "Nongle: Zero-Dongle Presenter", desc: "Kendalikan laptop langsung dari browser HP via WebRTC P2P tanpa install app apapun." },
-      { title: "Fitur Lengkap", desc: "Support file PDF lokal, navigasi sentuh ergonomis di HP, stopwatch, touchpad laser, dan gyro pointer." },
+      { title: "Nongle: Zero-Dongle Presenter", desc: "Kendalikan laptop langsung dari browser HP via Cloud Relay WSS tanpa install app apapun." },
+      { title: "Kebal Firewall", desc: "Berjalan di atas port HTTPS 443 murni. Aman menembus firewall kampus, kantor, atau hotel." },
       { title: "Mulai Sekarang", desc: "Buka file PDF lewat tombol di header atau kendalikan slide demo ini dengan HP." }
     ];
 
-    function initP2P() {
-      // 6 digit clean ID
-      roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const peerId = 'nongle-' + roomId.toLowerCase();
+    function initWS() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}`);
 
-      peer = new Peer(peerId, {
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            {
-              urls: [
-                'turn:openrelay.metered.ca:80',
-                'turn:openrelay.metered.ca:443',
-                'turn:openrelay.metered.ca:443?transport=tcp'
-              ],
-              username: 'openrelayproject',
-              credential: 'openrelayproject'
-            }
-          ]
-        }
-      });
-
-      peer.on('open', () => {
+      ws.onopen = () => {
         document.getElementById('net-dot').classList.add('live');
-        document.getElementById('net-text').textContent = 'P2P Ready';
-        generateQR();
-      });
+        document.getElementById('net-text').textContent = 'Server Online (WSS)';
+        ws.send(JSON.stringify({ type: 'CREATE_ROOM' }));
+      };
 
-      peer.on('connection', (conn) => {
-        remotes.add(conn);
-        updateRemoteBadge();
-
-        conn.on('open', () => {
-          conn.send({
-            type: 'ROOM_JOINED',
-            roomId,
-            state: { currentSlide, totalSlides, isBlackout }
-          });
-        });
-
-        conn.on('data', (raw) => {
-          const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          if (msg.type === 'NAVIGATE') {
-            if (msg.action === 'NEXT') nextSlide();
-            if (msg.action === 'PREV') prevSlide();
-            if (msg.action === 'GOTO') goToSlide(msg.targetSlide);
-          } else if (msg.type === 'SET_BLACKOUT') {
-            setBlackout(msg.state);
-            broadcast({ type: 'BLACKOUT_UPDATED', isBlackout });
-          } else if (msg.type === 'POINTER_MOVE') {
-            const laser = document.getElementById('laser-pointer');
-            if (msg.visible) {
-              laser.style.display = 'block';
-              laser.style.left = `${msg.x}%`;
-              laser.style.top = `${msg.y}%`;
-            } else {
-              laser.style.display = 'none';
-            }
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'ROOM_CREATED') {
+          roomId = msg.roomId;
+          generateQR();
+          syncState();
+        } else if (msg.type === 'REMOTE_CONNECTED') {
+          const badge = document.getElementById('remote-count');
+          badge.textContent = `${msg.count} HP Terhubung`;
+          badge.classList.add('connected');
+        } else if (msg.type === 'REMOTE_DISCONNECTED') {
+          const badge = document.getElementById('remote-count');
+          badge.textContent = msg.count > 0 ? `${msg.count} HP Terhubung` : 'Menunggu HP...';
+          if (msg.count === 0) badge.classList.remove('connected');
+        } else if (msg.type === 'NAVIGATE') {
+          if (msg.action === 'NEXT') nextSlide();
+          if (msg.action === 'PREV') prevSlide();
+          if (msg.action === 'GOTO') goToSlide(msg.targetSlide);
+        } else if (msg.type === 'BLACKOUT_UPDATED') {
+          setBlackout(msg.isBlackout);
+        } else if (msg.type === 'POINTER_MOVE') {
+          const laser = document.getElementById('laser-pointer');
+          if (msg.visible) {
+            laser.style.display = 'block';
+            laser.style.left = `${msg.x}%`;
+            laser.style.top = `${msg.y}%`;
+          } else {
+            laser.style.display = 'none';
           }
-        });
-
-        conn.on('close', () => {
-          remotes.delete(conn);
-          updateRemoteBadge();
-        });
-
-        conn.on('error', () => {
-          remotes.delete(conn);
-          updateRemoteBadge();
-        });
-      });
-
-      peer.on('error', (err) => {
-        console.error('Peer error:', err);
-        if (err.type === 'unavailable-id') {
-          setTimeout(initP2P, 1000);
         }
-      });
-    }
+      };
 
-    function updateRemoteBadge() {
-      const badge = document.getElementById('remote-count');
-      const count = remotes.size;
-      badge.textContent = count > 0 ? `${count} HP Terhubung` : 'Menunggu HP...';
-      badge.classList.toggle('connected', count > 0);
-    }
-
-    function broadcast(data) {
-      for (const conn of remotes) {
-        if (conn.open) conn.send(data);
-      }
+      ws.onclose = () => {
+        document.getElementById('net-dot').classList.remove('live');
+        document.getElementById('net-text').textContent = 'Terputus (Reconnect...)';
+        setTimeout(initWS, 2000);
+      };
     }
 
     function generateQR() {
-      const basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-      const remoteUrl = `${location.origin}${basePath}remote.html?room=${roomId}`;
-
+      const remoteUrl = `${location.origin}/remote.html?room=${roomId}`;
       document.getElementById('qrcode').innerHTML = '';
       new QRCode(document.getElementById('qrcode'), {
         text: remoteUrl,
@@ -338,11 +289,13 @@
     }
 
     function syncState() {
-      broadcast({
-        type: 'STATE_UPDATED',
-        currentSlide,
-        totalSlides
-      });
+      if (ws && ws.readyState === WebSocket.OPEN && roomId) {
+        ws.send(JSON.stringify({
+          type: 'UPDATE_STATE',
+          currentSlide,
+          totalSlides
+        }));
+      }
     }
 
     function renderSlide() {
@@ -393,8 +346,9 @@
       if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
       if (e.key === 'ArrowLeft') prevSlide();
       if (e.key === 'b' || e.key === 'B') {
-        setBlackout(!isBlackout);
-        broadcast({ type: 'BLACKOUT_UPDATED', isBlackout });
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'SET_BLACKOUT', state: !isBlackout }));
+        }
       }
       if (e.key === 'f' || e.key === 'F') toggleFullscreen();
     });
@@ -441,7 +395,7 @@
       frame.style.display = 'block';
     };
 
-    initP2P();
+    initWS();
   </script>
 </body>
 </html>
