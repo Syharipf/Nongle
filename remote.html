@@ -2,11 +2,10 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Nongle Remote</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0B0F19">
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     :root {
       --bg: #0B0F19;
@@ -19,24 +18,32 @@
       --success: #10B981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body {
+    html, body {
       background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, sans-serif;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
+      height: 100%;
+      height: 100dvh;
+      width: 100%;
       overflow: hidden;
       user-select: none;
+      position: fixed;
+      left: 0;
+      top: 0;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
     }
 
     header {
-      padding: 12px 16px;
+      padding: 10px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: var(--card);
       border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
     .status-badge {
       display: inline-flex;
@@ -56,18 +63,19 @@
     }
 
     .counter-bar {
-      padding: 10px 16px;
+      padding: 8px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: rgba(22, 31, 48, 0.4);
+      flex-shrink: 0;
     }
-    .counter-text { font-size: 20px; font-weight: 800; }
+    .counter-text { font-size: 18px; font-weight: 800; }
     .room-badge {
       font-size: 11px;
       color: var(--muted);
       background: var(--border);
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 6px;
     }
 
@@ -77,6 +85,7 @@
       padding: 4px;
       gap: 4px;
       border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
     .tab-btn {
       flex: 1;
@@ -99,9 +108,11 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 12px;
+      padding: 10px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
       gap: 10px;
       position: relative;
+      min-height: 0;
     }
 
     #mode-clicker {
@@ -109,14 +120,16 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-height: 0;
     }
     .btn-next {
-      flex: 7;
+      flex: 1;
+      min-height: 140px;
       background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 20px;
-      font-size: 30px;
+      font-size: 32px;
       font-weight: 800;
       display: flex;
       flex-direction: column;
@@ -128,10 +141,13 @@
     }
     .btn-next:active { transform: scale(0.98); background: #2563EB; }
     .subtext { font-size: 13px; font-weight: 500; opacity: 0.8; }
+    
     .bottom-row {
-      flex: 3;
+      height: 64px;
+      min-height: 64px;
       display: flex;
       gap: 10px;
+      flex-shrink: 0;
     }
 
     #mode-touchpad {
@@ -139,9 +155,11 @@
       display: none;
       flex-direction: column;
       gap: 10px;
+      min-height: 0;
     }
     .touchpad-surface {
       flex: 1;
+      min-height: 140px;
       background: var(--card);
       border: 2px dashed var(--border);
       border-radius: 20px;
@@ -165,9 +183,11 @@
       display: none;
       flex-direction: column;
       gap: 10px;
+      min-height: 0;
     }
     .btn-gyro-hold {
       flex: 1;
+      min-height: 140px;
       background: #7C3AED;
       color: #fff;
       border: none;
@@ -189,16 +209,18 @@
     }
 
     .mini-nav-bar {
-      height: 60px;
+      height: 64px;
+      min-height: 64px;
       display: flex;
       gap: 10px;
+      flex-shrink: 0;
     }
     .btn-action {
       background: var(--card);
       border: 1px solid var(--border);
       color: var(--text);
       border-radius: 14px;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -250,7 +272,7 @@
   <header>
     <div class="status-badge">
       <span class="dot" id="net-dot"></span>
-      <span id="net-text">P2P Connecting...</span>
+      <span id="net-text">Connecting...</span>
     </div>
     <div class="timer-box" id="timer-display" title="Tap untuk reset">00:00</div>
   </header>
@@ -270,7 +292,7 @@
     <div id="mode-clicker">
       <button class="btn-next" id="btn-next">
         <span>NEXT ❯</span>
-        <span class="subtext">Ketuk / Geser Kiri</span>
+        <span class="subtext">Ketuk Layar / Geser Kiri</span>
       </button>
       <div class="bottom-row">
         <button class="btn-action" style="flex:1;" id="btn-prev">❮ PREV</button>
@@ -311,8 +333,7 @@
   </div>
 
   <script>
-    let peer = null;
-    let conn = null;
+    let ws = null;
     let roomId = new URLSearchParams(location.search).get('room');
     let isBlackout = false;
     let timerSec = 0;
@@ -325,6 +346,15 @@
     let centerBeta = 45;
     let centerGamma = 0;
     let gyroActive = false;
+
+    // Auto Fullscreen on first user interaction
+    function triggerAutoFullscreen() {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+    document.addEventListener('touchstart', triggerAutoFullscreen, { once: true });
+    document.addEventListener('click', triggerAutoFullscreen, { once: true });
 
     function vibrate() {
       if (navigator.vibrate) navigator.vibrate(30);
@@ -354,64 +384,45 @@
       }
     };
 
-    function connectP2P() {
+    function connectWS() {
       if (!roomId) {
         document.getElementById('modal-join').style.display = 'flex';
         return;
       }
 
       document.getElementById('room-code').textContent = `ROOM: ${roomId.toUpperCase()}`;
-      peer = new Peer({
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302' }
-          ]
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}`);
+
+      ws.onopen = () => {
+        document.getElementById('net-dot').classList.add('live');
+        document.getElementById('net-text').textContent = 'Terhubung';
+        ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId: roomId.toUpperCase() }));
+        startTimer();
+      };
+
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'ROOM_JOINED') {
+          updateDisplay(msg.state.currentSlide, msg.state.totalSlides);
+          setBlackoutUI(msg.state.isBlackout);
+        } else if (msg.type === 'STATE_UPDATED') {
+          updateDisplay(msg.currentSlide, msg.totalSlides);
+        } else if (msg.type === 'BLACKOUT_UPDATED') {
+          setBlackoutUI(msg.isBlackout);
+        } else if (msg.type === 'VIEWER_DISCONNECTED') {
+          alert('Laptop viewer terputus.');
+        } else if (msg.type === 'ERROR') {
+          alert(msg.message);
+          location.search = '';
         }
-      });
+      };
 
-      peer.on('open', () => {
-        const targetPeerId = 'nongle-' + roomId.toLowerCase();
-        conn = peer.connect(targetPeerId, { reliable: true });
-
-        conn.on('open', () => {
-          document.getElementById('net-dot').classList.add('live');
-          document.getElementById('net-text').textContent = 'P2P Terhubung';
-          startTimer();
-        });
-
-        conn.on('data', (raw) => {
-          const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
-          if (msg.type === 'ROOM_JOINED') {
-            updateDisplay(msg.state.currentSlide, msg.state.totalSlides);
-            setBlackoutUI(msg.state.isBlackout);
-          } else if (msg.type === 'STATE_UPDATED') {
-            updateDisplay(msg.currentSlide, msg.totalSlides);
-          } else if (msg.type === 'BLACKOUT_UPDATED') {
-            setBlackoutUI(msg.isBlackout);
-          }
-        });
-
-        conn.on('close', () => {
-          document.getElementById('net-dot').classList.remove('live');
-          document.getElementById('net-text').textContent = 'Terputus (Retry...)';
-          setTimeout(connectP2P, 2000);
-        });
-
-        conn.on('error', () => {
-          document.getElementById('net-dot').classList.remove('live');
-          document.getElementById('net-text').textContent = 'Error koneksi';
-        });
-      });
-
-      peer.on('error', (err) => {
-        console.error('Peer error:', err);
+      ws.onclose = () => {
         document.getElementById('net-dot').classList.remove('live');
-        document.getElementById('net-text').textContent = 'Mencari laptop... (Retry)';
-        setTimeout(connectP2P, 2000);
-      });
+        document.getElementById('net-text').textContent = 'Terputus (Retry...)';
+        setTimeout(connectWS, 2000);
+      };
     }
 
     function updateDisplay(current, total) {
@@ -423,28 +434,24 @@
       document.getElementById('btn-blackout').classList.toggle('active', isBlackout);
     }
 
-    function sendData(payload) {
-      if (conn && conn.open) {
-        conn.send(payload);
+    function sendNav(action) {
+      vibrate();
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'NAVIGATE', action }));
       }
     }
 
-    function sendNav(action) {
-      vibrate();
-      sendData({ type: 'NAVIGATE', action });
-    }
-
     function sendPointer(visible, x, y) {
-      if (!conn || !conn.open) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
       if (sendThrottled) return;
       sendThrottled = true;
       requestAnimationFrame(() => {
-        sendData({
+        ws.send(JSON.stringify({
           type: 'POINTER_MOVE',
           visible,
           x: Math.max(0, Math.min(100, x)),
           y: Math.max(0, Math.min(100, y))
-        });
+        }));
         sendThrottled = false;
       });
     }
@@ -482,7 +489,9 @@
     document.getElementById('btn-prev').onclick = () => sendNav('PREV');
     document.getElementById('btn-blackout').onclick = () => {
       vibrate();
-      sendData({ type: 'SET_BLACKOUT', state: !isBlackout });
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'SET_BLACKOUT', state: !isBlackout }));
+      }
     };
 
     document.getElementById('btn-tp-next').onclick = () => sendNav('NEXT');
@@ -595,7 +604,7 @@
       }
     };
 
-    connectP2P();
+    // Hardware Volume buttons as remote clicker
     window.addEventListener('keydown', (e) => {
       if (e.key === 'VolumeUp' || e.key === 'AudioVolumeUp') {
         e.preventDefault();
@@ -609,6 +618,8 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
+
+    connectWS();
   </script>
 </body>
 </html>

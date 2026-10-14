@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Nongle Remote</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0B0F19">
@@ -18,24 +18,32 @@
       --success: #10B981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body {
+    html, body {
       background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, sans-serif;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
+      height: 100%;
+      height: 100dvh;
+      width: 100%;
       overflow: hidden;
       user-select: none;
+      position: fixed;
+      left: 0;
+      top: 0;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
     }
 
     header {
-      padding: 12px 16px;
+      padding: 10px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: var(--card);
       border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
     .status-badge {
       display: inline-flex;
@@ -55,18 +63,19 @@
     }
 
     .counter-bar {
-      padding: 10px 16px;
+      padding: 8px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: rgba(22, 31, 48, 0.4);
+      flex-shrink: 0;
     }
-    .counter-text { font-size: 20px; font-weight: 800; }
+    .counter-text { font-size: 18px; font-weight: 800; }
     .room-badge {
       font-size: 11px;
       color: var(--muted);
       background: var(--border);
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 6px;
     }
 
@@ -76,6 +85,7 @@
       padding: 4px;
       gap: 4px;
       border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
     .tab-btn {
       flex: 1;
@@ -98,9 +108,11 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 12px;
+      padding: 10px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
       gap: 10px;
       position: relative;
+      min-height: 0;
     }
 
     #mode-clicker {
@@ -108,14 +120,16 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-height: 0;
     }
     .btn-next {
-      flex: 7;
+      flex: 1;
+      min-height: 140px;
       background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 20px;
-      font-size: 30px;
+      font-size: 32px;
       font-weight: 800;
       display: flex;
       flex-direction: column;
@@ -127,10 +141,13 @@
     }
     .btn-next:active { transform: scale(0.98); background: #2563EB; }
     .subtext { font-size: 13px; font-weight: 500; opacity: 0.8; }
+    
     .bottom-row {
-      flex: 3;
+      height: 64px;
+      min-height: 64px;
       display: flex;
       gap: 10px;
+      flex-shrink: 0;
     }
 
     #mode-touchpad {
@@ -138,9 +155,11 @@
       display: none;
       flex-direction: column;
       gap: 10px;
+      min-height: 0;
     }
     .touchpad-surface {
       flex: 1;
+      min-height: 140px;
       background: var(--card);
       border: 2px dashed var(--border);
       border-radius: 20px;
@@ -164,9 +183,11 @@
       display: none;
       flex-direction: column;
       gap: 10px;
+      min-height: 0;
     }
     .btn-gyro-hold {
       flex: 1;
+      min-height: 140px;
       background: #7C3AED;
       color: #fff;
       border: none;
@@ -188,16 +209,18 @@
     }
 
     .mini-nav-bar {
-      height: 60px;
+      height: 64px;
+      min-height: 64px;
       display: flex;
       gap: 10px;
+      flex-shrink: 0;
     }
     .btn-action {
       background: var(--card);
       border: 1px solid var(--border);
       color: var(--text);
       border-radius: 14px;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -269,7 +292,7 @@
     <div id="mode-clicker">
       <button class="btn-next" id="btn-next">
         <span>NEXT ❯</span>
-        <span class="subtext">Ketuk / Geser Kiri</span>
+        <span class="subtext">Ketuk Layar / Geser Kiri</span>
       </button>
       <div class="bottom-row">
         <button class="btn-action" style="flex:1;" id="btn-prev">❮ PREV</button>
@@ -323,6 +346,15 @@
     let centerBeta = 45;
     let centerGamma = 0;
     let gyroActive = false;
+
+    // Auto Fullscreen on first user interaction
+    function triggerAutoFullscreen() {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+    document.addEventListener('touchstart', triggerAutoFullscreen, { once: true });
+    document.addEventListener('click', triggerAutoFullscreen, { once: true });
 
     function vibrate() {
       if (navigator.vibrate) navigator.vibrate(30);
