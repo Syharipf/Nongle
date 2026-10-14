@@ -30,6 +30,9 @@ jobs:
           mkdir -p dist
           cp index.html dist/
           cp remote.html dist/
+          cp manifest.json dist/ || true
+          cp sw.js dist/ || true
+          cp -r design dist/ || true
           cp -r public dist/ || true
           touch dist/.nojekyll
 

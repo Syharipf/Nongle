@@ -1,0 +1,19 @@
+{
+  "name": "Nongle Remote",
+  "short_name": "Nongle",
+  "description": "Zero-Dongle Presentation Remote",
+  "start_url": "./remote.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0F19",
+  "theme_color": "#0B0F19",
+  "icons": [
+    {
+      "src": "design/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

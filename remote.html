@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Nongle Remote</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0B0F19">
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -359,7 +361,23 @@
       }
 
       document.getElementById('room-code').textContent = `ROOM: ${roomId.toUpperCase()}`;
-      peer = new Peer();
+      peer = new Peer({
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            {
+              urls: [
+                'turn:openrelay.metered.ca:80',
+                'turn:openrelay.metered.ca:443',
+                'turn:openrelay.metered.ca:443?transport=tcp'
+              ],
+              username: 'openrelayproject',
+              credential: 'openrelayproject'
+            }
+          ]
+        }
+      });
 
       peer.on('open', () => {
         const targetPeerId = 'nongle-' + roomId.toLowerCase();
@@ -582,6 +600,19 @@
     };
 
     connectP2P();
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'VolumeUp' || e.key === 'AudioVolumeUp') {
+        e.preventDefault();
+        sendNav('NEXT');
+      } else if (e.key === 'VolumeDown' || e.key === 'AudioVolumeDown') {
+        e.preventDefault();
+        sendNav('PREV');
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>
