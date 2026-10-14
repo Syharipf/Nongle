@@ -6,6 +6,7 @@
   <title>Nongle - Zero-Dongle Presentation Hub</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     :root {
       --bg: #0B0F19;
@@ -111,7 +112,6 @@
     #slide-builtin h1 { font-size: 42px; margin-bottom: 16px; color: var(--accent); }
     #slide-builtin p { font-size: 20px; color: var(--muted); max-width: 600px; line-height: 1.6; }
 
-    /* Blackout Curtain */
     #blackout {
       position: absolute;
       inset: 0;
@@ -121,7 +121,20 @@
     }
     #blackout.active { display: block; }
 
-    /* QR Code Floating Card */
+    #laser-pointer {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #EF4444;
+      box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.9), 0 0 24px 6px rgba(239, 68, 68, 0.5);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      display: none;
+      z-index: 100;
+      transition: left 0.04s linear, top 0.04s linear;
+    }
+
     #qr-card {
       position: absolute;
       bottom: 24px;
@@ -156,26 +169,13 @@
     }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: #64748B; }
     .dot.live { background: var(--success); }
-    #laser-pointer {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #EF4444;
-      box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.9), 0 0 24px 6px rgba(239, 68, 68, 0.5);
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      display: none;
-      z-index: 100;
-      transition: left 0.04s linear, top 0.04s linear;
-    }
   </style>
 </head>
 <body>
   <header>
     <div class="brand">Nongle</div>
     <div class="controls">
-      <div id="status-pill"><span class="dot" id="net-dot"></span> <span id="net-text">Connecting...</span></div>
+      <div id="status-pill"><span class="dot" id="net-dot"></span> <span id="net-text">Menghubungkan P2P...</span></div>
       <label class="btn" title="Buka File PDF Presentasi">
         📂 Buka PDF / Slide
         <input type="file" id="file-input" accept="application/pdf,image/*">
@@ -211,74 +211,102 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
-    let ws;
+    let peer = null;
     let roomId = null;
-    let mode = 'builtin'; // 'builtin' | 'pdf' | 'embed'
+    const remotes = new Set();
+    let mode = 'builtin';
     let currentSlide = 1;
     let totalSlides = 3;
     let pdfDoc = null;
     let isBlackout = false;
 
     const builtinSlides = [
-      { title: "Zero-Install Presenter", desc: "Kendalikan laptop langsung dari browser HP tanpa install app apapun." },
-      { title: "Fitur Lengkap", desc: "Support file PDF lokal, navigasi sentuh ergonomis di HP, stopwatch, dan layar blackout." },
+      { title: "Nongle: Zero-Dongle Presenter", desc: "Kendalikan laptop langsung dari browser HP via WebRTC P2P tanpa install app apapun." },
+      { title: "Fitur Lengkap", desc: "Support file PDF lokal, navigasi sentuh ergonomis di HP, stopwatch, touchpad laser, dan gyro pointer." },
       { title: "Mulai Sekarang", desc: "Buka file PDF lewat tombol di header atau kendalikan slide demo ini dengan HP." }
     ];
 
-    async function init() {
-      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${proto}//${location.host}`);
+    function initP2P() {
+      // 6 digit clean ID
+      roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const peerId = 'nongle-' + roomId.toLowerCase();
 
-      ws.onopen = () => {
+      peer = new Peer(peerId);
+
+      peer.on('open', () => {
         document.getElementById('net-dot').classList.add('live');
-        document.getElementById('net-text').textContent = 'Server Online';
-        ws.send(JSON.stringify({ type: 'CREATE_ROOM' }));
-      };
+        document.getElementById('net-text').textContent = 'P2P Ready';
+        generateQR();
+      });
 
-      ws.onmessage = async (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'ROOM_CREATED') {
-          roomId = msg.roomId;
-          generateQR();
-          syncState();
-        } else if (msg.type === 'REMOTE_CONNECTED') {
-          const badge = document.getElementById('remote-count');
-          badge.textContent = `${msg.count} HP Terhubung`;
-          badge.classList.add('connected');
-        } else if (msg.type === 'REMOTE_DISCONNECTED') {
-          const badge = document.getElementById('remote-count');
-          badge.textContent = msg.count > 0 ? `${msg.count} HP Terhubung` : 'Menunggu HP...';
-          if (msg.count === 0) badge.classList.remove('connected');
-        } else if (msg.type === 'NAVIGATE') {
-          if (msg.action === 'NEXT') nextSlide();
-          if (msg.action === 'PREV') prevSlide();
-          if (msg.action === 'GOTO') goToSlide(msg.targetSlide);
-        } else if (msg.type === 'BLACKOUT_UPDATED') {
-          setBlackout(msg.isBlackout);
-        } else if (msg.type === 'POINTER_MOVE') {
-          const laser = document.getElementById('laser-pointer');
-          if (msg.visible) {
-            laser.style.display = 'block';
-            laser.style.left = `${msg.x}%`;
-            laser.style.top = `${msg.y}%`;
-          } else {
-            laser.style.display = 'none';
+      peer.on('connection', (conn) => {
+        remotes.add(conn);
+        updateRemoteBadge();
+
+        conn.on('open', () => {
+          conn.send({
+            type: 'ROOM_JOINED',
+            roomId,
+            state: { currentSlide, totalSlides, isBlackout }
+          });
+        });
+
+        conn.on('data', (raw) => {
+          const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (msg.type === 'NAVIGATE') {
+            if (msg.action === 'NEXT') nextSlide();
+            if (msg.action === 'PREV') prevSlide();
+            if (msg.action === 'GOTO') goToSlide(msg.targetSlide);
+          } else if (msg.type === 'SET_BLACKOUT') {
+            setBlackout(msg.state);
+            broadcast({ type: 'BLACKOUT_UPDATED', isBlackout });
+          } else if (msg.type === 'POINTER_MOVE') {
+            const laser = document.getElementById('laser-pointer');
+            if (msg.visible) {
+              laser.style.display = 'block';
+              laser.style.left = `${msg.x}%`;
+              laser.style.top = `${msg.y}%`;
+            } else {
+              laser.style.display = 'none';
+            }
           }
-        }
-      };
+        });
 
-      ws.onclose = () => {
-        document.getElementById('net-dot').classList.remove('live');
-        document.getElementById('net-text').textContent = 'Offline (Reconnecting...)';
-        setTimeout(init, 2000);
-      };
+        conn.on('close', () => {
+          remotes.delete(conn);
+          updateRemoteBadge();
+        });
+
+        conn.on('error', () => {
+          remotes.delete(conn);
+          updateRemoteBadge();
+        });
+      });
+
+      peer.on('error', (err) => {
+        console.error('Peer error:', err);
+        if (err.type === 'unavailable-id') {
+          setTimeout(initP2P, 1000);
+        }
+      });
     }
 
-    async function generateQR() {
-      const res = await fetch('/api/info');
-      const info = await res.json();
-      const host = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? `${info.ip}:${info.port}` : location.host;
-      const remoteUrl = `${location.protocol}//${host}/remote.html?room=${roomId}`;
+    function updateRemoteBadge() {
+      const badge = document.getElementById('remote-count');
+      const count = remotes.size;
+      badge.textContent = count > 0 ? `${count} HP Terhubung` : 'Menunggu HP...';
+      badge.classList.toggle('connected', count > 0);
+    }
+
+    function broadcast(data) {
+      for (const conn of remotes) {
+        if (conn.open) conn.send(data);
+      }
+    }
+
+    function generateQR() {
+      const basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+      const remoteUrl = `${location.origin}${basePath}remote.html?room=${roomId}`;
 
       document.getElementById('qrcode').innerHTML = '';
       new QRCode(document.getElementById('qrcode'), {
@@ -292,13 +320,11 @@
     }
 
     function syncState() {
-      if (ws && ws.readyState === WebSocket.OPEN && roomId) {
-        ws.send(JSON.stringify({
-          type: 'UPDATE_STATE',
-          currentSlide,
-          totalSlides
-        }));
-      }
+      broadcast({
+        type: 'STATE_UPDATED',
+        currentSlide,
+        totalSlides
+      });
     }
 
     function renderSlide() {
@@ -341,16 +367,16 @@
     }
 
     function setBlackout(active) {
-      isBlackout = active;
-      document.getElementById('blackout').classList.toggle('active', active);
+      isBlackout = Boolean(active);
+      document.getElementById('blackout').classList.toggle('active', isBlackout);
     }
 
-    // Keyboard controls
     window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
       if (e.key === 'ArrowLeft') prevSlide();
       if (e.key === 'b' || e.key === 'B') {
-        ws.send(JSON.stringify({ type: 'SET_BLACKOUT', state: !isBlackout }));
+        setBlackout(!isBlackout);
+        broadcast({ type: 'BLACKOUT_UPDATED', isBlackout });
       }
       if (e.key === 'f' || e.key === 'F') toggleFullscreen();
     });
@@ -367,7 +393,6 @@
 
     document.getElementById('btn-fullscreen').onclick = toggleFullscreen;
 
-    // Load PDF
     document.getElementById('file-input').onchange = (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -387,7 +412,6 @@
       reader.readAsArrayBuffer(file);
     };
 
-    // Load Embed (Google Slides / Web)
     document.getElementById('btn-load-embed').onclick = () => {
       const url = document.getElementById('embed-url').value.trim();
       if (!url) return;
@@ -399,7 +423,7 @@
       frame.style.display = 'block';
     };
 
-    init();
+    initP2P();
   </script>
 </body>
 </html>

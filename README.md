@@ -27,11 +27,17 @@
 - **Local Network Support**: Berfungsi via hotspot / WiFi lokal tanpa butuh kuota internet publik.
 
 ## Menjalankan Aplikasi
+## Live Demo (GitHub Pages)
+
+Aplikasi ini dapat langsung diakses gratis tanpa install server:
+- **Laptop Viewer**: `https://syharipf.github.io/Nongle/`
+- **Mobile Remote**: `https://syharipf.github.io/Nongle/remote.html` (atau cukup scan QR dari Laptop)
+
+Koneksi menggunakan **WebRTC P2P (PeerJS)** langsung point-to-point antar browser.
+
+## Menjalankan Lokal (Opsional)
 
 ```bash
-# Pastikan Bun terpasang (https://bun.sh)
+# Jalankan via Bun
 bun start
-
-# Menjalankan unit test
-bun test
 ```

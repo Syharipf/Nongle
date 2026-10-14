@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Nongle Remote</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg: #0B0F19;
+      --card: #161F30;
+      --border: #1E293B;
+      --text: #F8FAFC;
+      --muted: #94A3B8;
+      --accent: #3B82F6;
+      --danger: #EF4444;
+      --success: #10B981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #64748B; }
+    .dot.live { background: var(--success); }
+    .timer-box {
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    .counter-bar {
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(22, 31, 48, 0.4);
+    }
+    .counter-text { font-size: 20px; font-weight: 800; }
+    .room-badge {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--border);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .tab-bar {
+      display: flex;
+      background: #0F172A;
+      padding: 4px;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 10px;
+      position: relative;
+    }
+
+    #mode-clicker {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn-next {
+      flex: 7;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      font-size: 30px;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+    .btn-next:active { transform: scale(0.98); background: #2563EB; }
+    .subtext { font-size: 13px; font-weight: 500; opacity: 0.8; }
+    .bottom-row {
+      flex: 3;
+      display: flex;
+      gap: 10px;
+    }
+
+    #mode-touchpad {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .touchpad-surface {
+      flex: 1;
+      background: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      touch-action: none;
+    }
+    .touchpad-hint {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    #mode-gyro {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn-gyro-hold {
+      flex: 1;
+      background: #7C3AED;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      font-size: 24px;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
+      touch-action: none;
+    }
+    .btn-gyro-hold.active {
+      background: #EF4444;
+      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5);
+    }
+
+    .mini-nav-bar {
+      height: 60px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn-action {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-action:active { transform: scale(0.96); background: var(--border); }
+    .btn-blackout.active { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+    #modal-join {
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 100;
+    }
+    #modal-join input {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 24px;
+      text-align: center;
+      padding: 12px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 280px;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      margin-bottom: 16px;
+    }
+    #modal-join button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 280px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="status-badge">
+      <span class="dot" id="net-dot"></span>
+      <span id="net-text">P2P Connecting...</span>
+    </div>
+    <div class="timer-box" id="timer-display" title="Tap untuk reset">00:00</div>
+  </header>
+
+  <div class="counter-bar">
+    <div class="counter-text" id="slide-num">Slide 1 / 1</div>
+    <div class="room-badge" id="room-code">ROOM: ---</div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-clicker">🔘 Clicker</button>
+    <button class="tab-btn" id="tab-touchpad">🖱️ Touchpad</button>
+    <button class="tab-btn" id="tab-gyro">🎯 Gyro Air</button>
+  </div>
+
+  <main>
+    <div id="mode-clicker">
+      <button class="btn-next" id="btn-next">
+        <span>NEXT ❯</span>
+        <span class="subtext">Ketuk / Geser Kiri</span>
+      </button>
+      <div class="bottom-row">
+        <button class="btn-action" style="flex:1;" id="btn-prev">❮ PREV</button>
+        <button class="btn-action btn-blackout" style="flex:1;" id="btn-blackout">BLANK</button>
+      </div>
+    </div>
+
+    <div id="mode-touchpad">
+      <div class="touchpad-surface" id="touchpad-area">
+        <div class="touchpad-hint">
+          Usap jari untuk gerakkan laser di layar laptop.<br>
+          <span style="font-size:12px; color:var(--accent);">Double tap untuk toggle laser</span>
+        </div>
+      </div>
+      <div class="mini-nav-bar">
+        <button class="btn-action" style="flex:1;" id="btn-tp-prev">❮ PREV</button>
+        <button class="btn-action" style="flex:1; background:var(--accent); color:#fff;" id="btn-tp-next">NEXT ❯</button>
+      </div>
+    </div>
+
+    <div id="mode-gyro">
+      <button class="btn-gyro-hold" id="btn-gyro-laser">
+        <span id="gyro-status-label">TAHAN UNTUK LASER</span>
+        <span class="subtext">Arahkan HP ke layar laptop</span>
+      </button>
+      <div class="mini-nav-bar">
+        <button class="btn-action" style="flex:1;" id="btn-gyro-center">🎯 Center</button>
+        <button class="btn-action" style="flex:1;" id="btn-gyro-prev">❮ PREV</button>
+        <button class="btn-action" style="flex:1; background:var(--accent); color:#fff;" id="btn-gyro-next">NEXT ❯</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="modal-join">
+    <h2 style="margin-bottom:16px;">Masukkan Kode Room</h2>
+    <input type="text" id="input-room" maxlength="6" placeholder="KODE">
+    <button id="btn-join">Masuk</button>
+  </div>
+
+  <script>
+    let peer = null;
+    let conn = null;
+    let roomId = new URLSearchParams(location.search).get('room');
+    let isBlackout = false;
+    let timerSec = 0;
+    let timerInterval = null;
+
+    let pointerX = 50;
+    let pointerY = 50;
+    let sendThrottled = false;
+
+    let centerBeta = 45;
+    let centerGamma = 0;
+    let gyroActive = false;
+
+    function vibrate() {
+      if (navigator.vibrate) navigator.vibrate(30);
+    }
+
+    async function keepScreenOn() {
+      if ('wakeLock' in navigator) {
+        try { await navigator.wakeLock.request('screen'); } catch (e) {}
+      }
+    }
+    document.addEventListener('touchstart', keepScreenOn, { once: true });
+
+    function startTimer() {
+      if (timerInterval) return;
+      timerInterval = setInterval(() => {
+        timerSec++;
+        const m = String(Math.floor(timerSec / 60)).padStart(2, '0');
+        const s = String(timerSec % 60).padStart(2, '0');
+        document.getElementById('timer-display').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    document.getElementById('timer-display').onclick = () => {
+      if (confirm('Reset timer ke 00:00?')) {
+        timerSec = 0;
+        document.getElementById('timer-display').textContent = '00:00';
+      }
+    };
+
+    function connectP2P() {
+      if (!roomId) {
+        document.getElementById('modal-join').style.display = 'flex';
+        return;
+      }
+
+      document.getElementById('room-code').textContent = `ROOM: ${roomId.toUpperCase()}`;
+      peer = new Peer();
+
+      peer.on('open', () => {
+        const targetPeerId = 'nongle-' + roomId.toLowerCase();
+        conn = peer.connect(targetPeerId);
+
+        conn.on('open', () => {
+          document.getElementById('net-dot').classList.add('live');
+          document.getElementById('net-text').textContent = 'P2P Terhubung';
+          startTimer();
+        });
+
+        conn.on('data', (raw) => {
+          const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (msg.type === 'ROOM_JOINED') {
+            updateDisplay(msg.state.currentSlide, msg.state.totalSlides);
+            setBlackoutUI(msg.state.isBlackout);
+          } else if (msg.type === 'STATE_UPDATED') {
+            updateDisplay(msg.currentSlide, msg.totalSlides);
+          } else if (msg.type === 'BLACKOUT_UPDATED') {
+            setBlackoutUI(msg.isBlackout);
+          }
+        });
+
+        conn.on('close', () => {
+          document.getElementById('net-dot').classList.remove('live');
+          document.getElementById('net-text').textContent = 'Terputus (Retry...)';
+          setTimeout(connectP2P, 2000);
+        });
+
+        conn.on('error', () => {
+          document.getElementById('net-dot').classList.remove('live');
+          document.getElementById('net-text').textContent = 'Error koneksi';
+        });
+      });
+
+      peer.on('error', (err) => {
+        console.error('Peer error:', err);
+      });
+    }
+
+    function updateDisplay(current, total) {
+      document.getElementById('slide-num').textContent = `Slide ${current} / ${total}`;
+    }
+
+    function setBlackoutUI(state) {
+      isBlackout = Boolean(state);
+      document.getElementById('btn-blackout').classList.toggle('active', isBlackout);
+    }
+
+    function sendData(payload) {
+      if (conn && conn.open) {
+        conn.send(payload);
+      }
+    }
+
+    function sendNav(action) {
+      vibrate();
+      sendData({ type: 'NAVIGATE', action });
+    }
+
+    function sendPointer(visible, x, y) {
+      if (!conn || !conn.open) return;
+      if (sendThrottled) return;
+      sendThrottled = true;
+      requestAnimationFrame(() => {
+        sendData({
+          type: 'POINTER_MOVE',
+          visible,
+          x: Math.max(0, Math.min(100, x)),
+          y: Math.max(0, Math.min(100, y))
+        });
+        sendThrottled = false;
+      });
+    }
+
+    const tabClicker = document.getElementById('tab-clicker');
+    const tabTouchpad = document.getElementById('tab-touchpad');
+    const tabGyro = document.getElementById('tab-gyro');
+    const viewClicker = document.getElementById('mode-clicker');
+    const viewTouchpad = document.getElementById('mode-touchpad');
+    const viewGyro = document.getElementById('mode-gyro');
+
+    function switchTab(mode) {
+      [tabClicker, tabTouchpad, tabGyro].forEach(b => b.classList.remove('active'));
+      [viewClicker, viewTouchpad, viewGyro].forEach(v => v.style.display = 'none');
+      sendPointer(false, pointerX, pointerY);
+
+      if (mode === 'clicker') {
+        tabClicker.classList.add('active');
+        viewClicker.style.display = 'flex';
+      } else if (mode === 'touchpad') {
+        tabTouchpad.classList.add('active');
+        viewTouchpad.style.display = 'flex';
+      } else if (mode === 'gyro') {
+        tabGyro.classList.add('active');
+        viewGyro.style.display = 'flex';
+        requestGyroPermission();
+      }
+    }
+
+    tabClicker.onclick = () => switchTab('clicker');
+    tabTouchpad.onclick = () => switchTab('touchpad');
+    tabGyro.onclick = () => switchTab('gyro');
+
+    document.getElementById('btn-next').onclick = () => sendNav('NEXT');
+    document.getElementById('btn-prev').onclick = () => sendNav('PREV');
+    document.getElementById('btn-blackout').onclick = () => {
+      vibrate();
+      sendData({ type: 'SET_BLACKOUT', state: !isBlackout });
+    };
+
+    document.getElementById('btn-tp-next').onclick = () => sendNav('NEXT');
+    document.getElementById('btn-tp-prev').onclick = () => sendNav('PREV');
+    document.getElementById('btn-gyro-next').onclick = () => sendNav('NEXT');
+    document.getElementById('btn-gyro-prev').onclick = () => sendNav('PREV');
+
+    // Touchpad logic
+    const tpArea = document.getElementById('touchpad-area');
+    let tpLastX = 0, tpLastY = 0;
+    let lastTapTime = 0;
+    let tpPointerActive = true;
+
+    tpArea.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      tpLastX = touch.clientX;
+      tpLastY = touch.clientY;
+
+      const now = Date.now();
+      if (now - lastTapTime < 300) {
+        tpPointerActive = !tpPointerActive;
+        vibrate();
+      }
+      lastTapTime = now;
+      sendPointer(tpPointerActive, pointerX, pointerY);
+    }, { passive: false });
+
+    tpArea.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const deltaX = (touch.clientX - tpLastX) * 0.35;
+      const deltaY = (touch.clientY - tpLastY) * 0.35;
+      tpLastX = touch.clientX;
+      tpLastY = touch.clientY;
+
+      pointerX = Math.max(2, Math.min(98, pointerX + deltaX));
+      pointerY = Math.max(2, Math.min(98, pointerY + deltaY));
+      sendPointer(tpPointerActive, pointerX, pointerY);
+    }, { passive: false });
+
+    // Gyro Pointer logic
+    const gyroLaserBtn = document.getElementById('btn-gyro-laser');
+    const gyroLabel = document.getElementById('gyro-status-label');
+
+    function requestGyroPermission() {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(resp => {
+          if (resp === 'granted') window.addEventListener('deviceorientation', handleOrientation);
+        }).catch(() => {});
+      } else if (window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    }
+
+    function handleOrientation(e) {
+      if (!gyroActive || e.beta === null || e.gamma === null) return;
+      const sensitivity = 2.2;
+      const dGamma = (e.gamma - centerGamma) * sensitivity;
+      const dBeta = (e.beta - centerBeta) * sensitivity;
+
+      pointerX = Math.max(2, Math.min(98, 50 + dGamma));
+      pointerY = Math.max(2, Math.min(98, 50 + dBeta));
+      sendPointer(true, pointerX, pointerY);
+    }
+
+    document.getElementById('btn-gyro-center').onclick = () => {
+      vibrate();
+      pointerX = 50;
+      pointerY = 50;
+      sendPointer(true, 50, 50);
+    };
+
+    function startGyroLaser(e) {
+      e.preventDefault();
+      gyroActive = true;
+      gyroLaserBtn.classList.add('active');
+      gyroLabel.textContent = 'LASER AKTIF 🎯';
+      vibrate();
+      sendPointer(true, pointerX, pointerY);
+    }
+
+    function stopGyroLaser(e) {
+      e.preventDefault();
+      gyroActive = false;
+      gyroLaserBtn.classList.remove('active');
+      gyroLabel.textContent = 'TAHAN UNTUK LASER';
+      sendPointer(false, pointerX, pointerY);
+    }
+
+    gyroLaserBtn.addEventListener('touchstart', startGyroLaser, { passive: false });
+    gyroLaserBtn.addEventListener('touchend', stopGyroLaser, { passive: false });
+    gyroLaserBtn.addEventListener('touchcancel', stopGyroLaser, { passive: false });
+
+    // Swipe on clicker
+    let touchStartX = 0;
+    viewClicker.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    viewClicker.addEventListener('touchend', (e) => {
+      const diffX = e.changedTouches[0].screenX - touchStartX;
+      if (diffX < -60) sendNav('NEXT');
+      if (diffX > 60) sendNav('PREV');
+    }, { passive: true });
+
+    document.getElementById('btn-join').onclick = () => {
+      const val = document.getElementById('input-room').value.trim().toUpperCase();
+      if (val.length >= 4) {
+        location.search = `?room=${val}`;
+      }
+    };
+
+    connectP2P();
+  </script>
+</body>
+</html>

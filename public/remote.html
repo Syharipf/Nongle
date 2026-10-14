@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Nongle Remote</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     :root {
       --bg: #0B0F19;
@@ -68,7 +69,6 @@
       border-radius: 6px;
     }
 
-    /* Mode Switcher Tabs */
     .tab-bar {
       display: flex;
       background: #0F172A;
@@ -93,7 +93,6 @@
       color: #fff;
     }
 
-    /* Main Viewport Container */
     main {
       flex: 1;
       display: flex;
@@ -103,7 +102,6 @@
       position: relative;
     }
 
-    /* Mode 1: Clicker */
     #mode-clicker {
       flex: 1;
       display: flex;
@@ -134,7 +132,6 @@
       gap: 10px;
     }
 
-    /* Mode 2: Touchpad */
     #mode-touchpad {
       flex: 1;
       display: none;
@@ -161,7 +158,6 @@
       pointer-events: none;
     }
 
-    /* Mode 3: Gyro Air Pointer */
     #mode-gyro {
       flex: 1;
       display: none;
@@ -190,7 +186,6 @@
       box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5);
     }
 
-    /* Shared Mini Controls for Touchpad & Gyro */
     .mini-nav-bar {
       height: 60px;
       display: flex;
@@ -211,7 +206,6 @@
     .btn-action:active { transform: scale(0.96); background: var(--border); }
     .btn-blackout.active { background: var(--danger); color: #fff; border-color: var(--danger); }
 
-    /* Modal Room Input */
     #modal-join {
       position: absolute;
       inset: 0;
@@ -254,7 +248,7 @@
   <header>
     <div class="status-badge">
       <span class="dot" id="net-dot"></span>
-      <span id="net-text">Menghubungkan...</span>
+      <span id="net-text">P2P Connecting...</span>
     </div>
     <div class="timer-box" id="timer-display" title="Tap untuk reset">00:00</div>
   </header>
@@ -271,7 +265,6 @@
   </div>
 
   <main>
-    <!-- MODE 1: CLICKER -->
     <div id="mode-clicker">
       <button class="btn-next" id="btn-next">
         <span>NEXT ❯</span>
@@ -283,7 +276,6 @@
       </div>
     </div>
 
-    <!-- MODE 2: TOUCHPAD -->
     <div id="mode-touchpad">
       <div class="touchpad-surface" id="touchpad-area">
         <div class="touchpad-hint">
@@ -297,7 +289,6 @@
       </div>
     </div>
 
-    <!-- MODE 3: GYRO AIR -->
     <div id="mode-gyro">
       <button class="btn-gyro-hold" id="btn-gyro-laser">
         <span id="gyro-status-label">TAHAN UNTUK LASER</span>
@@ -318,19 +309,17 @@
   </div>
 
   <script>
-    let ws;
+    let peer = null;
+    let conn = null;
     let roomId = new URLSearchParams(location.search).get('room');
     let isBlackout = false;
     let timerSec = 0;
     let timerInterval = null;
 
-    // Pointer state
-    let laserVisible = false;
-    let pointerX = 50; // 0 - 100%
-    let pointerY = 50; // 0 - 100%
+    let pointerX = 50;
+    let pointerY = 50;
     let sendThrottled = false;
 
-    // Gyro calibration reference
     let centerBeta = 45;
     let centerGamma = 0;
     let gyroActive = false;
@@ -363,45 +352,52 @@
       }
     };
 
-    function connect() {
+    function connectP2P() {
       if (!roomId) {
         document.getElementById('modal-join').style.display = 'flex';
         return;
       }
 
-      document.getElementById('room-code').textContent = `ROOM: ${roomId}`;
-      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${proto}//${location.host}`);
+      document.getElementById('room-code').textContent = `ROOM: ${roomId.toUpperCase()}`;
+      peer = new Peer();
 
-      ws.onopen = () => {
-        document.getElementById('net-dot').classList.add('live');
-        document.getElementById('net-text').textContent = 'Terhubung';
-        ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId }));
-        startTimer();
-      };
+      peer.on('open', () => {
+        const targetPeerId = 'nongle-' + roomId.toLowerCase();
+        conn = peer.connect(targetPeerId);
 
-      ws.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'ROOM_JOINED') {
-          updateDisplay(msg.state.currentSlide, msg.state.totalSlides);
-          setBlackoutUI(msg.state.isBlackout);
-        } else if (msg.type === 'STATE_UPDATED') {
-          updateDisplay(msg.currentSlide, msg.totalSlides);
-        } else if (msg.type === 'BLACKOUT_UPDATED') {
-          setBlackoutUI(msg.isBlackout);
-        } else if (msg.type === 'VIEWER_DISCONNECTED') {
-          alert('Laptop viewer terputus.');
-        } else if (msg.type === 'ERROR') {
-          alert(msg.message);
-          location.search = '';
-        }
-      };
+        conn.on('open', () => {
+          document.getElementById('net-dot').classList.add('live');
+          document.getElementById('net-text').textContent = 'P2P Terhubung';
+          startTimer();
+        });
 
-      ws.onclose = () => {
-        document.getElementById('net-dot').classList.remove('live');
-        document.getElementById('net-text').textContent = 'Terputus (Retry...)';
-        setTimeout(connect, 2000);
-      };
+        conn.on('data', (raw) => {
+          const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (msg.type === 'ROOM_JOINED') {
+            updateDisplay(msg.state.currentSlide, msg.state.totalSlides);
+            setBlackoutUI(msg.state.isBlackout);
+          } else if (msg.type === 'STATE_UPDATED') {
+            updateDisplay(msg.currentSlide, msg.totalSlides);
+          } else if (msg.type === 'BLACKOUT_UPDATED') {
+            setBlackoutUI(msg.isBlackout);
+          }
+        });
+
+        conn.on('close', () => {
+          document.getElementById('net-dot').classList.remove('live');
+          document.getElementById('net-text').textContent = 'Terputus (Retry...)';
+          setTimeout(connectP2P, 2000);
+        });
+
+        conn.on('error', () => {
+          document.getElementById('net-dot').classList.remove('live');
+          document.getElementById('net-text').textContent = 'Error koneksi';
+        });
+      });
+
+      peer.on('error', (err) => {
+        console.error('Peer error:', err);
+      });
     }
 
     function updateDisplay(current, total) {
@@ -409,33 +405,36 @@
     }
 
     function setBlackoutUI(state) {
-      isBlackout = state;
-      document.getElementById('btn-blackout').classList.toggle('active', state);
+      isBlackout = Boolean(state);
+      document.getElementById('btn-blackout').classList.toggle('active', isBlackout);
+    }
+
+    function sendData(payload) {
+      if (conn && conn.open) {
+        conn.send(payload);
+      }
     }
 
     function sendNav(action) {
       vibrate();
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'NAVIGATE', action }));
-      }
+      sendData({ type: 'NAVIGATE', action });
     }
 
     function sendPointer(visible, x, y) {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      if (!conn || !conn.open) return;
       if (sendThrottled) return;
       sendThrottled = true;
       requestAnimationFrame(() => {
-        ws.send(JSON.stringify({
+        sendData({
           type: 'POINTER_MOVE',
           visible,
           x: Math.max(0, Math.min(100, x)),
           y: Math.max(0, Math.min(100, y))
-        }));
+        });
         sendThrottled = false;
       });
     }
 
-    // Tabs switching
     const tabClicker = document.getElementById('tab-clicker');
     const tabTouchpad = document.getElementById('tab-touchpad');
     const tabGyro = document.getElementById('tab-gyro');
@@ -465,23 +464,19 @@
     tabTouchpad.onclick = () => switchTab('touchpad');
     tabGyro.onclick = () => switchTab('gyro');
 
-    // Mode 1: Clicker events
     document.getElementById('btn-next').onclick = () => sendNav('NEXT');
     document.getElementById('btn-prev').onclick = () => sendNav('PREV');
     document.getElementById('btn-blackout').onclick = () => {
       vibrate();
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'SET_BLACKOUT', state: !isBlackout }));
-      }
+      sendData({ type: 'SET_BLACKOUT', state: !isBlackout });
     };
 
-    // Shared mini nav buttons
     document.getElementById('btn-tp-next').onclick = () => sendNav('NEXT');
     document.getElementById('btn-tp-prev').onclick = () => sendNav('PREV');
     document.getElementById('btn-gyro-next').onclick = () => sendNav('NEXT');
     document.getElementById('btn-gyro-prev').onclick = () => sendNav('PREV');
 
-    // Mode 2: Touchpad
+    // Touchpad logic
     const tpArea = document.getElementById('touchpad-area');
     let tpLastX = 0, tpLastY = 0;
     let lastTapTime = 0;
@@ -514,7 +509,7 @@
       sendPointer(tpPointerActive, pointerX, pointerY);
     }, { passive: false });
 
-    // Mode 3: Gyro Air Pointer
+    // Gyro Pointer logic
     const gyroLaserBtn = document.getElementById('btn-gyro-laser');
     const gyroLabel = document.getElementById('gyro-status-label');
 
@@ -567,7 +562,7 @@
     gyroLaserBtn.addEventListener('touchend', stopGyroLaser, { passive: false });
     gyroLaserBtn.addEventListener('touchcancel', stopGyroLaser, { passive: false });
 
-    // Swipe Gesture on Clicker View
+    // Swipe on clicker
     let touchStartX = 0;
     viewClicker.addEventListener('touchstart', (e) => {
       touchStartX = e.changedTouches[0].screenX;
@@ -586,7 +581,7 @@
       }
     };
 
-    connect();
+    connectP2P();
   </script>
 </body>
 </html>
