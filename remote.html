@@ -366,22 +366,15 @@
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
-            {
-              urls: [
-                'turn:openrelay.metered.ca:80',
-                'turn:openrelay.metered.ca:443',
-                'turn:openrelay.metered.ca:443?transport=tcp'
-              ],
-              username: 'openrelayproject',
-              credential: 'openrelayproject'
-            }
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' }
           ]
         }
       });
 
       peer.on('open', () => {
         const targetPeerId = 'nongle-' + roomId.toLowerCase();
-        conn = peer.connect(targetPeerId);
+        conn = peer.connect(targetPeerId, { reliable: true });
 
         conn.on('open', () => {
           document.getElementById('net-dot').classList.add('live');
@@ -415,6 +408,9 @@
 
       peer.on('error', (err) => {
         console.error('Peer error:', err);
+        document.getElementById('net-dot').classList.remove('live');
+        document.getElementById('net-text').textContent = 'Mencari laptop... (Retry)';
+        setTimeout(connectP2P, 2000);
       });
     }
 
