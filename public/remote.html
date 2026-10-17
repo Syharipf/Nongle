@@ -428,7 +428,8 @@
       document.getElementById('r-time').style.color = timerRunning ? '#EDEDED' : '#8C93A3';
     };
 
-    // Dual Transport: PeerJS (serverless WebRTC for GitHub Pages) + Bun WebSocket
+    // Dual Transport: WebSocket on Railway/Render/local + PeerJS fallback on GitHub Pages
+    const isGitHubPages = location.hostname.endsWith('github.io');
     const isLocalServer = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     let peer = null;
     let peerConn = null;
@@ -436,7 +437,7 @@
     function connect(code) {
       if (!code) return;
       roomId = code.toUpperCase();
-      if (isLocalServer) {
+      if (!isGitHubPages) {
         connectWS(roomId);
       } else {
         connectPeer(roomId);
@@ -557,7 +558,14 @@
       }
 
       ws.onopen = () => {
+        const dot = document.getElementById('r-status-dot');
+        const lbl = document.getElementById('r-status-label');
+        if (dot) dot.style.background = '#30D158';
+        if (lbl) lbl.textContent = 'Terhubung';
+        document.getElementById('r-ping').textContent = 'WS';
+        document.getElementById('oh-ping').textContent = 'WS';
         ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId }));
+        startTimer();
         setInterval(() => {
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'PING', ts: Date.now() }));
@@ -573,13 +581,13 @@
       };
 
       ws.onclose = () => {
-        if (isLocalServer) {
-          document.getElementById('r-ping').textContent = 'Terputus';
-          document.getElementById('oh-ping').textContent = 'Terputus';
-          setTimeout(() => { if (roomId) connectWS(roomId); }, 2000);
-        } else {
-          connectPeer(code);
-        }
+        const dot = document.getElementById('r-status-dot');
+        const lbl = document.getElementById('r-status-label');
+        if (dot) dot.style.background = '#FF453A';
+        if (lbl) lbl.textContent = 'Terputus';
+        document.getElementById('r-ping').textContent = '';
+        document.getElementById('oh-ping').textContent = 'Terputus';
+        setTimeout(() => { if (roomId) connectWS(roomId); }, 2000);
       };
     }
 
