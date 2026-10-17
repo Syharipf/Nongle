@@ -428,20 +428,14 @@
       document.getElementById('r-time').style.color = timerRunning ? '#EDEDED' : '#8C93A3';
     };
 
-    // Dual Transport: WebSocket on Railway/Render/local + PeerJS fallback on GitHub Pages
-    const isGitHubPages = location.hostname.endsWith('github.io');
-    const isLocalServer = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    // Transport: WebSocket Server
     let peer = null;
     let peerConn = null;
 
     function connect(code) {
       if (!code) return;
       roomId = code.toUpperCase();
-      if (!isGitHubPages) {
-        connectWS(roomId);
-      } else {
-        connectPeer(roomId);
-      }
+      connectWS(roomId);
     }
 
     function handleIncoming(msg) {

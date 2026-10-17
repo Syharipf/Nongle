@@ -643,18 +643,12 @@
       }
     }
 
-    // Dual Transport: WebSocket on Railway/Render/local + PeerJS fallback on GitHub Pages
-    const isGitHubPages = location.hostname.endsWith('github.io');
-    const isLocalServer = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    // Transport: WebSocket Server
     let peer = null;
     const remotes = new Set();
 
     function initTransport() {
-      if (!isGitHubPages) {
-        initWS();
-      } else {
-        initPeer();
-      }
+      initWS();
     }
 
     function initPeer() {
@@ -819,12 +813,8 @@
           }
         } catch (_) {}
       }
-      const basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-      const remoteUrl = isGitHubPages
-        ? `${location.origin}${basePath}remote.html?room=${roomId}&_t=${Date.now().toString(36)}`
-        : `${location.protocol}//${host}${basePath}remote.html?room=${roomId}`;
-      document.getElementById('pair-domain-text').textContent = `${host}${basePath}remote.html`;
-
+      const remoteUrl = `${location.protocol}//${host}/remote.html?room=${roomId}`;
+      document.getElementById('pair-domain-text').textContent = `${host}/remote.html`;
       const qrContainer = document.getElementById('pair-qrcode');
       qrContainer.innerHTML = '';
       new QRCode(qrContainer, {

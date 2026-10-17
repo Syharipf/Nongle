@@ -2,8 +2,8 @@
 
 > **Zero-Dongle Presentation Hub**: Ubah smartphone apa pun menjadi clicker, touchpad kursor, dan gyro laser pointer nirkabel tanpa perlu memasang dongle USB atau menginstal software di laptop.
 
-[![Deploy to GitHub Pages](https://github.com/Syharipf/Nongle/actions/workflows/deploy.yml/badge.svg)](https://github.com/Syharipf/Nongle/actions/workflows/deploy.yml)
-[![PWA Ready](https://img.shields.io/badge/PWA-Ready-3B82F6?logo=pwa&logoColor=white)](https://syharipf.github.io/Nongle/)
+[![Live on Railway](https://img.shields.io/badge/Railway-Live-0B0D0E?logo=railway&logoColor=white)](https://nongle.up.railway.app)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-3B82F6?logo=pwa&logoColor=white)](https://nongle.up.railway.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
@@ -12,9 +12,9 @@
 
 | Perangkat | Link Akses | Fungsi |
 | :--- | :--- | :--- |
-| **🌐 Landing Page** | **[nongle](https://syharipf.github.io/Nongle/)** | Penjelasan & demo interaktif |
-| **💻 Laptop / Layar Presentasi** | **[Buka Nongle Viewer](https://syharipf.github.io/Nongle/app.html)** | Menampilkan slide (PDF/Embed) + QR Code pairing |
-| **📱 Smartphone (Remote Controller)** | **[Buka Nongle Remote](https://syharipf.github.io/Nongle/remote.html)** | Layar controller atau langsung scan QR dari laptop |
+| **🌐 Landing Page** | **[nongle](https://nongle.up.railway.app/)** | Penjelasan & demo interaktif |
+| **💻 Laptop / Layar Presentasi** | **[Buka Nongle Viewer](https://nongle.up.railway.app/app.html)** | Menampilkan slide (PDF/Embed) + QR Code pairing |
+| **📱 Smartphone (Remote Controller)** | **[Buka Nongle Remote](https://nongle.up.railway.app/remote.html)** | Layar controller atau langsung scan QR dari laptop |
 
 ---
 
@@ -52,7 +52,7 @@ Nongle menyelesaikan ini dengan memanfaatkan **WebRTC P2P (Peer-to-Peer)**:
 ## 📲 Install sebagai Aplikasi HP (PWA)
 
 Nongle mendukung standar **Progressive Web App (PWA)**:
-1. Buka [https://syharipf.github.io/Nongle/remote.html](https://syharipf.github.io/Nongle/remote.html) di browser HP (Chrome / Safari).
+1. Buka [https://nongle.up.railway.app/remote.html](https://nongle.up.railway.app/remote.html) di browser HP (Chrome / Safari).
 2. Tap tombol menu browser $\to$ pilih **"Tambahkan ke Layar Utama" / "Add to Home screen" / "Install App"**.
 3. Nongle akan terpasang di HP seperti aplikasi native: berjalan fullscreen tanpa bilah alamat browser, responsif, dan hemat baterai.
 
