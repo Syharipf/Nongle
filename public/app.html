@@ -821,7 +821,7 @@
       const basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
       const remoteUrl = isLocalServer
         ? `${location.protocol}//${host}/remote.html?room=${roomId}`
-        : `${location.origin}${basePath}remote.html?room=${roomId}`;
+        : `${location.origin}${basePath}remote.html?room=${roomId}&_t=${Date.now().toString(36)}`;
       document.getElementById('pair-domain-text').textContent = isLocalServer
         ? `${host}/remote.html`
         : `${location.host}${basePath}remote.html`;

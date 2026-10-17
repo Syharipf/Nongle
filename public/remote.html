@@ -1100,6 +1100,16 @@
       }
     };
 
+    // Clean old service workers/caches that cause stale black screens
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        for (const r of regs) r.unregister();
+      }).catch(() => {});
+    }
+    if (typeof caches !== 'undefined') {
+      caches.keys().then((ks) => { for (const k of ks) caches.delete(k); }).catch(() => {});
+    }
+
     // Init
     if (roomId) {
       document.getElementById('c-room-code').textContent = roomId;
