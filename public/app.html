@@ -904,6 +904,10 @@
       isBlackout = Boolean(active);
       document.getElementById('blackout-overlay').classList.toggle('active', isBlackout);
     }
+    document.getElementById('blackout-overlay').onclick = () => {
+      setBlackout(false);
+      broadcast({ type: 'BLACKOUT_UPDATED', isBlackout: false });
+    };
 
     const laserEl = document.getElementById('laser-pointer');
     let laserShown = false, laserColorNow = '';

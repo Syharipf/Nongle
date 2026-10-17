@@ -462,7 +462,7 @@
         totalSlides = msg.totalSlides;
         syncSlideUI();
       } else if (msg.type === 'BLACKOUT_UPDATED') {
-        isBlackout = Boolean(msg.state.isBlackout);
+        isBlackout = Boolean(typeof msg.isBlackout !== 'undefined' ? msg.isBlackout : (msg.state && msg.state.isBlackout));
         syncBlackoutUI();
       } else if (msg.type === 'PONG') {
         const rtt = Date.now() - msg.ts;
@@ -610,10 +610,11 @@
       });
       sentVisible = visible; sentX = laserX; sentY = laserY;
     }
-
     function toggleBlackout() {
       buzz(20);
-      sendMsg({ type: 'SET_BLACKOUT', state: !isBlackout });
+      isBlackout = !isBlackout;
+      syncBlackoutUI();
+      sendMsg({ type: 'SET_BLACKOUT', state: isBlackout });
     }
 
 
