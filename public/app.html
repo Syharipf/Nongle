@@ -10,6 +10,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -642,10 +643,116 @@
       }
     }
 
-    // WebSocket init
+    // Dual Transport: PeerJS (serverless for GitHub Pages) + fallback/local WebSocket
+    const isLocalServer = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    let peer = null;
+    const remotes = new Set();
+
+    function initTransport() {
+      if (isLocalServer) {
+        initWS();
+      } else {
+        initPeer();
+      }
+    }
+
+    function initPeer() {
+      document.getElementById('toast-reconnect').style.display = 'none';
+      roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const peerId = 'nongle-' + roomId.toLowerCase();
+      try { if (peer) peer.destroy(); } catch (_) {}
+
+      peer = new Peer(peerId);
+      peer.on('open', () => {
+        document.getElementById('toast-reconnect').style.display = 'none';
+        document.getElementById('pair-code-text').textContent = roomId;
+        generateQR();
+        syncState();
+      });
+
+      peer.on('connection', (conn) => {
+        remotes.add(conn);
+        updateRemotesUI();
+
+        const sendJoined = () => {
+          try {
+            conn.send({
+              type: 'ROOM_JOINED',
+              roomId,
+              state: { currentSlide, totalSlides, isBlackout }
+            });
+          } catch (_) {}
+        };
+        if (conn.open) sendJoined();
+        else conn.on('open', sendJoined);
+
+        conn.on('data', (raw) => {
+          const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (msg.type === 'JOIN_ROOM') { sendJoined(); return; }
+          handleRemoteMsg(msg);
+        });
+
+        const drop = () => { remotes.delete(conn); updateRemotesUI(); };
+        conn.on('close', drop);
+        conn.on('error', drop);
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') setTimeout(initPeer, 400);
+        else {
+          document.getElementById('toast-reconnect').style.display = 'flex';
+          setTimeout(initPeer, 3000);
+        }
+      });
+    }
+
+    function updateRemotesUI() {
+      remotesCount = remotes.size;
+      const pill = document.getElementById('pair-status-pill');
+      if (remotesCount > 0) {
+        pill.className = 'pair-status connected';
+        document.getElementById('pair-status-text').textContent = 'HP terhubung';
+        if (document.getElementById('check-lock').checked && views.pair.classList.contains('active')) {
+          showView('present');
+        }
+      } else {
+        pill.className = 'pair-status waiting';
+        document.getElementById('pair-status-text').textContent = 'Menunggu HP…';
+      }
+    }
+
+    function handleRemoteMsg(msg) {
+      if (msg.type === 'NAVIGATE') {
+        if (msg.action === 'NEXT') nextSlide();
+        if (msg.action === 'PREV') prevSlide();
+      } else if (msg.type === 'SET_BLACKOUT') {
+        setBlackout(msg.state);
+        broadcast({ type: 'BLACKOUT_UPDATED', isBlackout: msg.state });
+      } else if (msg.type === 'POINTER_MOVE') {
+        handlePointer(msg);
+      } else if (msg.type === 'PING') {
+        broadcast({ type: 'PONG', ts: msg.ts });
+      }
+    }
+
+    function broadcast(msg) {
+      for (const conn of remotes) {
+        if (conn.open) {
+          try { conn.send(msg); } catch (_) {}
+        }
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
+    }
+
     function initWS() {
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${proto}//${location.host}`);
+      try {
+        ws = new WebSocket(`${proto}//${location.host}`);
+      } catch (_) {
+        return initPeer();
+      }
 
       ws.onopen = () => {
         document.getElementById('toast-reconnect').style.display = 'none';
@@ -665,7 +772,6 @@
             const pill = document.getElementById('pair-status-pill');
             pill.className = 'pair-status connected';
             document.getElementById('pair-status-text').textContent = 'HP terhubung';
-
             if (document.getElementById('check-lock').checked && views.pair.classList.contains('active')) {
               showView('present');
             }
@@ -676,22 +782,19 @@
               pill.className = 'pair-status waiting';
               document.getElementById('pair-status-text').textContent = 'Menunggu HP…';
             }
-          } else if (msg.type === 'NAVIGATE') {
-            if (msg.action === 'NEXT') nextSlide();
-            if (msg.action === 'PREV') prevSlide();
-          } else if (msg.type === 'SET_BLACKOUT') {
-            setBlackout(msg.state);
-          } else if (msg.type === 'BLACKOUT_UPDATED') {
-            setBlackout(msg.isBlackout);
-          } else if (msg.type === 'POINTER_MOVE') {
-            handlePointer(msg);
+          } else {
+            handleRemoteMsg(msg);
           }
         } catch (_) {}
       };
 
       ws.onclose = () => {
-        document.getElementById('toast-reconnect').style.display = 'flex';
-        setTimeout(initWS, 2000);
+        if (isLocalServer) {
+          document.getElementById('toast-reconnect').style.display = 'flex';
+          setTimeout(initWS, 2000);
+        } else {
+          initPeer();
+        }
       };
     }
 
@@ -706,8 +809,13 @@
           }
         } catch (_) {}
       }
-      const remoteUrl = `${location.protocol}//${host}/remote.html?room=${roomId}`;
-      document.getElementById('pair-domain-text').textContent = `${location.host}/remote.html`;
+      const basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+      const remoteUrl = isLocalServer
+        ? `${location.protocol}//${host}/remote.html?room=${roomId}`
+        : `${location.origin}${basePath}remote.html?room=${roomId}`;
+      document.getElementById('pair-domain-text').textContent = isLocalServer
+        ? `${host}/remote.html`
+        : `${location.host}${basePath}remote.html`;
 
       const qrContainer = document.getElementById('pair-qrcode');
       qrContainer.innerHTML = '';
@@ -722,12 +830,12 @@
     }
 
     function syncState() {
-      if (ws && ws.readyState === WebSocket.OPEN && roomId) {
-        ws.send(JSON.stringify({
+      if (roomId) {
+        broadcast({
           type: 'UPDATE_STATE',
           currentSlide,
           totalSlides
-        }));
+        });
       }
     }
 
@@ -833,9 +941,8 @@
       if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
       if (e.key === 'ArrowLeft') prevSlide();
       if (e.key === 'b' || e.key === 'B') {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'SET_BLACKOUT', state: !isBlackout }));
-        }
+        setBlackout(!isBlackout);
+        broadcast({ type: 'SET_BLACKOUT', state: isBlackout });
       }
       if (e.key === 'f' || e.key === 'F') toggleFullscreen();
       if (e.key === 'Escape' && views.present.classList.contains('active')) {
@@ -981,7 +1088,7 @@
       showView('pair');
     };
 
-    initWS();
+    initTransport();
   </script>
 </body>
 </html>

@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#0D1017">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -428,12 +429,106 @@
       document.getElementById('r-time').style.color = timerRunning ? '#EDEDED' : '#8C93A3';
     };
 
-    // WebSocket
-    function connectWS(code) {
+    // Dual Transport: PeerJS (serverless WebRTC for GitHub Pages) + Bun WebSocket
+    const isLocalServer = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    let peer = null;
+    let peerConn = null;
+
+    function connect(code) {
       if (!code) return;
       roomId = code.toUpperCase();
+      if (isLocalServer) {
+        connectWS(roomId);
+      } else {
+        connectPeer(roomId);
+      }
+    }
+
+    function handleIncoming(msg) {
+      if (msg.type === 'ROOM_JOINED') {
+        document.getElementById('c-room-code').textContent = roomId;
+        if (msg.state) {
+          currentSlide = msg.state.currentSlide || 1;
+          totalSlides = msg.state.totalSlides || 1;
+          isBlackout = Boolean(msg.state.isBlackout);
+          syncSlideUI();
+          syncBlackoutUI();
+        }
+        document.getElementById('c-slide-meta').textContent = `${totalSlides} slide terhubung`;
+        showView('connect');
+      } else if (msg.type === 'STATE_UPDATED') {
+        currentSlide = msg.currentSlide;
+        totalSlides = msg.totalSlides;
+        syncSlideUI();
+      } else if (msg.type === 'BLACKOUT_UPDATED') {
+        isBlackout = Boolean(msg.isBlackout);
+        syncBlackoutUI();
+      } else if (msg.type === 'PONG') {
+        const rtt = Date.now() - msg.ts;
+        document.getElementById('r-ping').textContent = `${rtt} ms`;
+        document.getElementById('oh-ping').textContent = `${rtt} ms`;
+      }
+    }
+
+    function sendMsg(msg) {
+      if (peerConn && peerConn.open) {
+        try { peerConn.send(msg); } catch (_) {}
+        return;
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
+    }
+
+    function connectPeer(code) {
+      try { if (peer) peer.destroy(); } catch (_) {}
+      peer = new Peer();
+      peer.on('open', () => {
+        const targetPeerId = 'nongle-' + code.toLowerCase();
+        peerConn = peer.connect(targetPeerId);
+
+        peerConn.on('open', () => {
+          document.getElementById('r-ping').textContent = 'P2P';
+          document.getElementById('oh-ping').textContent = 'P2P';
+          sendMsg({ type: 'JOIN_ROOM', roomId: code });
+          setInterval(() => {
+            if (peerConn && peerConn.open) {
+              sendMsg({ type: 'PING', ts: Date.now() });
+            }
+          }, 3500);
+        });
+
+        peerConn.on('data', (raw) => {
+          const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          handleIncoming(msg);
+        });
+
+        peerConn.on('close', () => {
+          document.getElementById('r-ping').textContent = 'Terputus';
+          document.getElementById('oh-ping').textContent = 'Terputus';
+          setTimeout(() => { if (roomId) connectPeer(roomId); }, 2000);
+        });
+
+        peerConn.on('error', () => {
+          document.getElementById('r-ping').textContent = 'Error';
+          document.getElementById('oh-ping').textContent = 'Error';
+        });
+      });
+
+      peer.on('error', (err) => {
+        document.getElementById('r-ping').textContent = 'Gagal P2P';
+        document.getElementById('oh-ping').textContent = 'Gagal P2P';
+        setTimeout(() => { if (roomId) connectPeer(roomId); }, 3000);
+      });
+    }
+
+    function connectWS(code) {
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${proto}//${location.host}`);
+      try {
+        ws = new WebSocket(`${proto}//${location.host}`);
+      } catch (_) {
+        return connectPeer(code);
+      }
 
       ws.onopen = () => {
         ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId }));
@@ -447,44 +542,24 @@
       ws.onmessage = (e) => {
         try {
           const msg = JSON.parse(e.data);
-          if (msg.type === 'ROOM_JOINED') {
-            document.getElementById('c-room-code').textContent = roomId;
-            if (msg.state) {
-              currentSlide = msg.state.currentSlide || 1;
-              totalSlides = msg.state.totalSlides || 1;
-              isBlackout = Boolean(msg.state.isBlackout);
-              syncSlideUI();
-              syncBlackoutUI();
-            }
-            document.getElementById('c-slide-meta').textContent = `${totalSlides} slide terhubung`;
-            showView('connect');
-          } else if (msg.type === 'STATE_UPDATED') {
-            currentSlide = msg.currentSlide;
-            totalSlides = msg.totalSlides;
-            syncSlideUI();
-          } else if (msg.type === 'BLACKOUT_UPDATED') {
-            isBlackout = Boolean(msg.isBlackout);
-            syncBlackoutUI();
-          } else if (msg.type === 'PONG') {
-            const rtt = Date.now() - msg.ts;
-            document.getElementById('r-ping').textContent = `${rtt} ms`;
-            document.getElementById('oh-ping').textContent = `${rtt} ms`;
-          }
+          handleIncoming(msg);
         } catch (_) {}
       };
 
       ws.onclose = () => {
-        document.getElementById('r-ping').textContent = 'Terputus';
-        document.getElementById('oh-ping').textContent = 'Terputus';
-        setTimeout(() => { if (roomId) connectWS(roomId); }, 2000);
+        if (isLocalServer) {
+          document.getElementById('r-ping').textContent = 'Terputus';
+          document.getElementById('oh-ping').textContent = 'Terputus';
+          setTimeout(() => { if (roomId) connectWS(roomId); }, 2000);
+        } else {
+          connectPeer(code);
+        }
       };
     }
 
     function sendNav(action) {
       buzz(12);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'NAVIGATE', action }));
-      }
+      sendMsg({ type: 'NAVIGATE', action });
     }
 
     const radarDot = document.getElementById('p-radar-dot');
@@ -500,25 +575,21 @@
       radarDot.style.top = `${laserY}%`;
       radarDot.style.opacity = visible ? 1 : 0.3;
 
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      // Slow network: drop stale moves instead of queueing lag; hide always goes out.
-      if (visible && ws.bufferedAmount > 1024) return;
-      ws.send(JSON.stringify({
+      sendMsg({
         type: 'POINTER_MOVE',
         visible,
         x: laserX,
         y: laserY,
         color: laserColor
-      }));
+      });
       sentVisible = visible; sentX = laserX; sentY = laserY;
     }
 
     function toggleBlackout() {
       buzz(20);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'SET_BLACKOUT', state: !isBlackout }));
-      }
+      sendMsg({ type: 'SET_BLACKOUT', state: !isBlackout });
     }
+
 
     function syncSlideUI() {
       const pct = Math.round((currentSlide / Math.max(1, totalSlides)) * 100) + '%';
@@ -1010,13 +1081,13 @@
       const code = document.getElementById('input-join-room').value.trim();
       if (code) {
         buzz();
-        connectWS(code);
+        connect(code);
       }
     };
 
     // Init
     if (roomId) {
-      connectWS(roomId);
+      connect(roomId);
     } else {
       showView('join');
     }
