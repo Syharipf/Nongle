@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#0D1017">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="assets/peerjs.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -115,7 +115,7 @@
       </div>
       <h1 id="c-title" style="margin: 0; font-weight: 600; font-size: 34px; line-height: 1.05; letter-spacing: -0.035em;">Menghubungkan...</h1>
       <div id="c-slide-meta" style="font-size: 15px; color: #8C93A3;">Mencari room di laptop...</div>
-
+    </div>
     <div style="background: #171B24; border-radius: 18px; padding: 0 16px;">
       <div style="display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid #252B38;">
         <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
@@ -155,12 +155,12 @@
   </div>
 
   <!-- VIEW 2: Phone-Remote.dc.html (Mode Tombol) -->
-  <div class="screen" id="view-remote" style="padding: 56px 16px 20px; gap: 10px;">
+  <div class="screen active" id="view-remote" style="padding: 56px 16px 20px; gap: 10px;">
     <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding-left: 4px;">
       <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #A3A9B7;">
-        <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #30D158;"></span>
-        Terhubung
-        <span id="r-ping" style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #8C93A3;">-- ms</span>
+        <span id="r-status-dot" aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #E5A100;"></span>
+        <span id="r-status-label">Menghubungkan...</span>
+        <span id="r-ping" style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #8C93A3;"></span>
       </div>
       <button type="button" id="btn-remote-menu" aria-label="Menu sesi" style="width: 44px; height: 44px; border-radius: 12px; border: none; background: #171B24; color: #EDEDED; display: flex; align-items: center; justify-content: center; cursor: pointer;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
@@ -445,15 +445,10 @@
 
     function handleIncoming(msg) {
       if (msg.type === 'ROOM_JOINED') {
-        document.getElementById('c-room-code').textContent = roomId;
-        const statusRow = document.getElementById('c-status-row');
-        const statusDot = document.getElementById('c-status-dot');
-        const statusText = document.getElementById('c-status-text');
-        const title = document.getElementById('c-title');
-        if (statusRow) statusRow.style.color = '#30D158';
-        if (statusDot) statusDot.style.background = '#30D158';
-        if (statusText) statusText.textContent = 'Terhubung ke laptop';
-        if (title) title.textContent = 'Siap jadi remote';
+        const dot = document.getElementById('r-status-dot');
+        const lbl = document.getElementById('r-status-label');
+        if (dot) dot.style.background = '#30D158';
+        if (lbl) lbl.textContent = 'Terhubung';
         if (msg.state) {
           currentSlide = msg.state.currentSlide || 1;
           totalSlides = msg.state.totalSlides || 1;
@@ -461,14 +456,13 @@
           syncSlideUI();
           syncBlackoutUI();
         }
-        document.getElementById('c-slide-meta').textContent = `${totalSlides} slide terhubung`;
-        showView('connect');
+        showView('remote');
       } else if (msg.type === 'STATE_UPDATED') {
         currentSlide = msg.currentSlide;
         totalSlides = msg.totalSlides;
         syncSlideUI();
       } else if (msg.type === 'BLACKOUT_UPDATED') {
-        isBlackout = Boolean(msg.isBlackout);
+        isBlackout = Boolean(msg.state.isBlackout);
         syncBlackoutUI();
       } else if (msg.type === 'PONG') {
         const rtt = Date.now() - msg.ts;
@@ -503,9 +497,14 @@
         const targetPeerId = 'nongle-' + code.toLowerCase();
         peerConn = peer.connect(targetPeerId);
         peerConn.on('open', () => {
+          const dot = document.getElementById('r-status-dot');
+          const lbl = document.getElementById('r-status-label');
+          if (dot) dot.style.background = '#30D158';
+          if (lbl) lbl.textContent = 'Terhubung';
           document.getElementById('r-ping').textContent = 'P2P';
           document.getElementById('oh-ping').textContent = 'P2P';
           sendMsg({ type: 'JOIN_ROOM', roomId: code });
+          startTimer();
           setInterval(() => {
             if (peerConn && peerConn.open) {
               sendMsg({ type: 'PING', ts: Date.now() });
@@ -519,19 +518,31 @@
         });
 
         peerConn.on('close', () => {
-          document.getElementById('r-ping').textContent = 'Terputus';
+          const dot = document.getElementById('r-status-dot');
+          const lbl = document.getElementById('r-status-label');
+          if (dot) dot.style.background = '#FF453A';
+          if (lbl) lbl.textContent = 'Terputus';
+          document.getElementById('r-ping').textContent = '';
           document.getElementById('oh-ping').textContent = 'Terputus';
           setTimeout(() => { if (roomId) connectPeer(roomId); }, 2000);
         });
 
         peerConn.on('error', () => {
-          document.getElementById('r-ping').textContent = 'Error';
+          const dot = document.getElementById('r-status-dot');
+          const lbl = document.getElementById('r-status-label');
+          if (dot) dot.style.background = '#FF453A';
+          if (lbl) lbl.textContent = 'Error';
+          document.getElementById('r-ping').textContent = '';
           document.getElementById('oh-ping').textContent = 'Error';
         });
       });
 
       peer.on('error', (err) => {
-        document.getElementById('r-ping').textContent = 'Gagal P2P';
+        const dot = document.getElementById('r-status-dot');
+        const lbl = document.getElementById('r-status-label');
+        if (dot) dot.style.background = '#FF453A';
+        if (lbl) lbl.textContent = 'Gagal P2P';
+        document.getElementById('r-ping').textContent = '';
         document.getElementById('oh-ping').textContent = 'Gagal P2P';
         setTimeout(() => { if (roomId) connectPeer(roomId); }, 3000);
       });
@@ -1112,8 +1123,7 @@
 
     // Init
     if (roomId) {
-      document.getElementById('c-room-code').textContent = roomId;
-      showView('connect');
+      showView('remote');
       connect(roomId);
     } else {
       showView('join');
