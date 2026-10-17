@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Nongle — Mode presentasi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#EDEDED}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="position: relative; min-height: 800px; background: #000000; color: #EDEDED; font-family: 'Geist', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; overflow: hidden">
+  <div style="position: relative; width: 100%; max-width: 1200px; aspect-ratio: 16 / 9; background: {{slideBg}}; color: {{slideFg}}; box-sizing: border-box; padding: 6% 7%; display: flex; flex-direction: column; gap: 4%">
+    <div style="font-family: 'Geist Mono', monospace; font-size: 14px; letter-spacing: 0.06em; color: {{slideMuted}}">[Bagian 03]</div>
+    <div style="font-weight: 600; font-size: 56px; line-height: 1.05; letter-spacing: -0.035em">[Judul slide yang sedang tampil]</div>
+    <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 18px; margin-top: 2%">
+      <div style="height: 14px; width: 72%; background: {{slideBar}}; border-radius: 4px"></div>
+      <div style="height: 14px; width: 64%; background: {{slideBar}}; border-radius: 4px"></div>
+      <div style="height: 14px; width: 48%; background: {{slideBar}}; border-radius: 4px"></div>
+    </div>
+    <sc-if value="{{laser}}" hint-placeholder-val="{{ true }}">
+      <span aria-hidden="true" style="position: absolute; left: 60%; top: 40%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: {{laserColor}}; box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 5px rgba(0,0,0,0.6), 0 0 24px 8px {{laserGlow}}"></span>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{blackout}}" hint-placeholder-val="{{ false }}">
+    <div aria-label="Layar hitam aktif" style="position: absolute; inset: 0; background: #000000"></div>
+  </sc-if>
+
+  <sc-if value="{{hud}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: 24px; bottom: 20px; display: flex; align-items: center; gap: 14px; padding: 7px 12px; border-radius: 8px; background: rgba(20,20,22,0.7); font-family: 'Geist Mono', monospace; font-size: 12px; color: #A1A1A6">
+      <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: #30D158"></span>
+      <span>12 / 24</span>
+      <span>08:42</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{reconnecting}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; right: 24px; top: 20px; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: rgba(20,20,22,0.85); font-size: 13px; color: #C4C4C8">
+      <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: #FFD60A"></span>
+      Menyambung ulang remote… keyboard tetap aktif
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"slideTheme":{"editor":"enum","options":["Terang","Gelap"],"default":"Terang"},"laserColor":{"editor":"color","options":["#FF2D55","#FFD60A","#30D158"],"default":"#FF2D55"},"laser":{"editor":"boolean","default":true},"blackout":{"editor":"boolean","default":false},"hud":{"editor":"boolean","default":true},"reconnecting":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = (this.props.slideTheme ?? 'Terang') === 'Gelap';
+    var c = this.props.laserColor ?? '#FF2D55';
+    var h = c.replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h, 16);
+    var glow = 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',0.35)';
+    return {
+      slideBg: dark ? '#14161B' : '#F5F4F0',
+      slideFg: dark ? '#F2F2F2' : '#151515',
+      slideMuted: dark ? '#9097A3' : '#6B6A66',
+      slideBar: dark ? '#2C3039' : '#DAD7CF',
+      laserColor: c,
+      laserGlow: glow,
+      laser: this.props.laser ?? true,
+      blackout: this.props.blackout ?? false,
+      hud: this.props.hud ?? true,
+      reconnecting: this.props.reconnecting ?? false
+    };
+  }
+}
+</script>
+</body>
+</html>

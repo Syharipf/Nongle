@@ -12,7 +12,8 @@
 
 | Perangkat | Link Akses | Fungsi |
 | :--- | :--- | :--- |
-| **💻 Laptop / Layar Presentasi** | **[Buka Nongle Viewer](https://syharipf.github.io/Nongle/)** | Menampilkan slide (PDF/Embed) + QR Code pairing |
+| **🌐 Landing Page** | **[nongle](https://syharipf.github.io/Nongle/)** | Penjelasan & demo interaktif |
+| **💻 Laptop / Layar Presentasi** | **[Buka Nongle Viewer](https://syharipf.github.io/Nongle/app.html)** | Menampilkan slide (PDF/Embed) + QR Code pairing |
 | **📱 Smartphone (Remote Controller)** | **[Buka Nongle Remote](https://syharipf.github.io/Nongle/remote.html)** | Layar controller atau langsung scan QR dari laptop |
 
 ---
@@ -71,5 +72,5 @@ bun start
 # Menjalankan automated test
 bun test
 ```
-- Akses Laptop Viewer lokal di `http://localhost:3000`
+- Landing page lokal di `http://localhost:3000`, Laptop Viewer di `http://localhost:3000/app.html`
 - Akses Mobile Remote di `http://<IP-LAPTOP>:3000/remote.html`

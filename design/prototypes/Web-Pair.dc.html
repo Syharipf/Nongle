@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Nongle — Pairing QR</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0;background:#F6F5F1}
+a{color:#111113}a:hover{color:#5E5E63}
+</style>
+</helmet>
+<div style="min-height: 880px; background: #F6F5F1; color: #111113; font-family: 'Geist', system-ui, sans-serif; box-sizing: border-box">
+  <header style="max-width: 1080px; margin: 0 auto; padding: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+    <span style="font-weight: 600; font-size: 21px; letter-spacing: -0.03em">nongle<span style="color: #FF2D55">.</span></span>
+    <a href="Main.dc.html" style="font-size: 14px; text-decoration: none">Ganti file</a>
+  </header>
+
+  <main style="max-width: 920px; margin: 0 auto; padding: 72px 24px; display: flex; flex-wrap: wrap; gap: 56px; align-items: center; box-sizing: border-box">
+    <div style="flex: none; background: #FFFFFF; border-radius: 24px; padding: 20px; box-shadow: 0 0 0 12px #E3E8FF">
+      <div role="img" aria-label="QR code sesi" style="display: grid; grid-template-columns: repeat(25, 10px); grid-auto-rows: 10px; width: 250px">
+        <sc-for list="{{cells}}" as="cell" hint-placeholder-count="625">
+          <div style="background: {{cell.c}}"></div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <sc-if value="{{notConnected}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #8A6100">
+            <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #E5A100"></span>
+            Menunggu HP…
+          </div>
+        </sc-if>
+        <sc-if value="{{connected}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #17803F">
+            <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #1F9D55"></span>
+            iPhone · Safari terhubung
+            <span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #6B6B70">41 ms</span>
+          </div>
+        </sc-if>
+        <h1 style="margin: 0; font-weight: 600; font-size: 40px; line-height: 1.05; letter-spacing: -0.04em">Scan pakai kamera HP</h1>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #5E5E63">QR tidak terbaca? Buka <span style="font-family: 'Geist Mono', monospace; color: #111113">[domain]/j</span> lalu ketik kode <span style="font-family: 'Geist Mono', monospace; font-weight: 600; color: #111113; letter-spacing: 0.06em">K7Q-4XM</span></p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 18px 0; border-top: 1px solid #E7E7E9; border-bottom: 1px solid #E7E7E9">
+        <div style="font-size: 14px; color: #5E5E63">[nama-file].pdf · 24 slide</div>
+        <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.45; cursor: pointer">
+          <input type="checkbox" checked="{{locked}}" onChange="{{toggleLock}}" style="width: 18px; height: 18px; margin: 1px 0 0; accent-color: #3B5BFF; flex: none">
+          <span>Kunci ke HP pertama yang terhubung <span style="color: #6B6B70">— jangan proyeksikan layar ini dulu, siapa pun yang scan bisa ikut kontrol.</span></span>
+        </label>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+        <sc-if value="{{connected}}" hint-placeholder-val="{{ false }}">
+          <a href="Web-Present.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 10px; background: #3B5BFF; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none">Mulai presentasi</a>
+        </sc-if>
+        <sc-if value="{{notConnected}}" hint-placeholder-val="{{ true }}">
+          <button type="button" disabled style="min-height: 48px; padding: 0 22px; border-radius: 10px; border: none; background: #ECECEE; color: #8A8A8F; font: inherit; font-weight: 500; font-size: 15px">Mulai presentasi</button>
+        </sc-if>
+        <a href="Web-Present.dc.html" style="font-size: 14px; color: #5E5E63">atau pakai keyboard saja</a>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"connected":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":880}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { locked: true };
+  }
+  buildCells() {
+    var n = 25, cells = [], seed = 7;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    function finder(r, c) {
+      if (r < 0 || c < 0 || r > 7 || c > 7) return null;
+      if (r === 7 || c === 7) return false;
+      if (r === 0 || c === 0 || r === 6 || c === 6) return true;
+      if (r >= 2 && r <= 4 && c >= 2 && c <= 4) return true;
+      return false;
+    }
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        var f = finder(r, c);
+        if (f === null) f = finder(r, n - 1 - c);
+        if (f === null) f = finder(n - 1 - r, c);
+        var on = f === null ? rnd() > 0.52 : f;
+        cells.push({ c: on ? '#111113' : '#FFFFFF' });
+      }
+    }
+    return cells;
+  }
+  renderVals() {
+    if (!this._cells) this._cells = this.buildCells();
+    var connected = this.props.connected ?? false;
+    return {
+      cells: this._cells,
+      connected: connected,
+      notConnected: !connected,
+      locked: this.state.locked,
+      toggleLock: () => this.setState({ locked: !this.state.locked })
+    };
+  }
+}
+</script>
+</body>
+</html>

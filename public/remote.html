@@ -1,625 +1,1025 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
+  <title>Nongle HP — Remote</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Nongle Remote</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0D1017">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0B0F19">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
   <style>
-    :root {
-      --bg: #0B0F19;
-      --card: #161F30;
-      --border: #1E293B;
-      --text: #F8FAFC;
-      --muted: #94A3B8;
-      --accent: #3B82F6;
-      --danger: #EF4444;
-      --success: #10B981;
-    }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #0D1017;
+      color: #EDEDED;
+      font-family: 'Geist', system-ui, -apple-system, sans-serif;
+      width: 100%;
       height: 100%;
       height: 100dvh;
-      width: 100%;
       overflow: hidden;
       user-select: none;
+      -webkit-user-select: none;
       position: fixed;
       left: 0;
       top: 0;
     }
-    body {
-      display: flex;
+    a { color: #EDEDED; text-decoration: none; }
+    a:hover { color: #FFFFFF; }
+    button { font: inherit; color: inherit; cursor: pointer; }
+
+    /* Screen Wrapper matching prototype (width: 390px, max-width 430px, height: 100dvh) */
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 430px;
+      height: 100%;
+      height: 100dvh;
+      margin: 0 auto;
+      background: #0D1017;
+      box-sizing: border-box;
       flex-direction: column;
+      overflow: hidden;
+      position: relative;
     }
+    .screen.active { display: flex; }
 
-    header {
-      padding: 10px 16px;
-      display: flex;
-      justify-content: space-between;
+    /* Prompt modal */
+    #view-join {
+      padding: 60px 24px;
       align-items: center;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: #64748B; }
-    .dot.live { background: var(--success); }
-    .timer-box {
-      font-family: monospace;
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--accent);
-      cursor: pointer;
-    }
-
-    .counter-bar {
-      padding: 8px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(22, 31, 48, 0.4);
-      flex-shrink: 0;
-    }
-    .counter-text { font-size: 18px; font-weight: 800; }
-    .room-badge {
-      font-size: 11px;
-      color: var(--muted);
-      background: var(--border);
-      padding: 3px 8px;
-      border-radius: 6px;
-    }
-
-    .tab-bar {
-      display: flex;
-      background: #0F172A;
-      padding: 4px;
-      gap: 4px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .tab-btn {
-      flex: 1;
-      padding: 8px 4px;
-      background: transparent;
-      border: none;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 600;
-      border-radius: 8px;
-      cursor: pointer;
+      justify-content: center;
+      gap: 20px;
       text-align: center;
     }
-    .tab-btn.active {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-      gap: 10px;
-      position: relative;
-      min-height: 0;
-    }
-
-    #mode-clicker {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-height: 0;
-    }
-    .btn-next {
-      flex: 1;
-      min-height: 140px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 20px;
-      font-size: 32px;
-      font-weight: 800;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      cursor: pointer;
-      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-    }
-    .btn-next:active { transform: scale(0.98); background: #2563EB; }
-    .subtext { font-size: 13px; font-weight: 500; opacity: 0.8; }
-    
-    .bottom-row {
-      height: 64px;
-      min-height: 64px;
-      display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    #mode-touchpad {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      min-height: 0;
-    }
-    .touchpad-surface {
-      flex: 1;
-      min-height: 140px;
-      background: var(--card);
-      border: 2px dashed var(--border);
-      border-radius: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      touch-action: none;
-    }
-    .touchpad-hint {
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 500;
-      text-align: center;
-      pointer-events: none;
-    }
-
-    #mode-gyro {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      min-height: 0;
-    }
-    .btn-gyro-hold {
-      flex: 1;
-      min-height: 140px;
-      background: #7C3AED;
-      color: #fff;
-      border: none;
-      border-radius: 20px;
-      font-size: 24px;
-      font-weight: 800;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      cursor: pointer;
-      box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
-      touch-action: none;
-    }
-    .btn-gyro-hold.active {
-      background: #EF4444;
-      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.5);
-    }
-
-    .mini-nav-bar {
-      height: 64px;
-      min-height: 64px;
-      display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-    .btn-action {
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--text);
+    .join-input {
+      width: 100%;
+      max-width: 280px;
+      height: 56px;
+      background: #171B24;
+      border: 1px solid #232836;
       border-radius: 14px;
-      font-size: 16px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    .btn-action:active { transform: scale(0.96); background: var(--border); }
-    .btn-blackout.active { background: var(--danger); color: #fff; border-color: var(--danger); }
-
-    #modal-join {
-      position: absolute;
-      inset: 0;
-      background: var(--bg);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      z-index: 100;
-    }
-    #modal-join input {
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--text);
+      color: #EDEDED;
+      font-family: 'Geist Mono', monospace;
       font-size: 24px;
       text-align: center;
-      padding: 12px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 280px;
-      text-transform: uppercase;
       letter-spacing: 4px;
-      margin-bottom: 16px;
+      text-transform: uppercase;
+      outline: none;
     }
-    #modal-join button {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 14px 28px;
-      font-size: 16px;
-      font-weight: 700;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 280px;
-    }
+    .join-input:focus { border-color: #3B5BFF; }
+
+    /* OneHand Gesture animations from prototype */
+    .surf { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; touch-action: none; }
+    .ripw { position: absolute; width: 0; height: 0; pointer-events: none; }
+    .rip { position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; animation: rip .8s cubic-bezier(.15,.6,.3,1) forwards; }
+    .rip-s { border: none; border-right: 2px solid currentColor; animation-name: rips; animation-duration: .9s; }
+    @keyframes rip { from { transform: scale(.15); opacity: .9; } to { transform: scale(2.4); opacity: 0; } }
+    @keyframes rips { from { transform: translateX(-6px) scale(.35,.5); opacity: .95; } to { transform: translateX(34px) scale(1.1,2.1); opacity: 0; } }
+    .flash { position: absolute; left: 0; right: 0; top: 44%; text-align: center; font-weight: 600; font-size: 40px; letter-spacing: -0.03em; color: #EDEDED; pointer-events: none; animation: flash .7s ease-out forwards; z-index: 20; }
+    @keyframes flash { 0% { opacity: 0; transform: scale(.92); } 20% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: translateY(-14px); } }
+
+    /* Laser pointer styles from prototype */
+    .pad { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; touch-action: none; }
+    .pulse { position: absolute; inset: 0; border-radius: 50%; border: 2px solid currentColor; animation: pulse 1.4s ease-out infinite; pointer-events: none; }
+    .pulse.d2 { animation-delay: .7s; }
+    @keyframes pulse { from { transform: scale(1); opacity: .75; } to { transform: scale(1.55); opacity: 0; } }
   </style>
 </head>
 <body>
-  <header>
-    <div class="status-badge">
-      <span class="dot" id="net-dot"></span>
-      <span id="net-text">Connecting...</span>
+
+  <!-- VIEW 0: Enter Room Code (if no query param) -->
+  <div class="screen" id="view-join">
+    <div style="font-weight: 600; font-size: 24px; letter-spacing: -0.03em;">nongle<span style="color: #FF2D55;">.</span></div>
+    <div style="font-weight: 600; font-size: 32px; letter-spacing: -0.035em;">Hubungkan HP</div>
+    <div style="font-size: 15px; color: #8C93A3;">Masukkan kode yang tampil di laptop.</div>
+    <input type="text" id="input-join-room" class="join-input" maxlength="7" placeholder="K7Q-4XM" autocomplete="off" autocorrect="off" autocapitalize="characters">
+    <button type="button" id="btn-join-submit" style="min-height: 52px; width: 100%; max-width: 280px; border-radius: 14px; border: none; background: #3B5BFF; color: #FFFFFF; font-weight: 600; font-size: 16px;">Masuk</button>
+  </div>
+
+  <!-- VIEW 1: Phone-Connect.dc.html -->
+  <div class="screen" id="view-connect" style="padding: 60px 20px 24px; gap: 28px;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <span style="font-weight: 600; font-size: 19px; letter-spacing: -0.03em;">nongle<span style="color: #FF2D55;">.</span></span>
+      <span id="c-room-code" style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #8C93A3;">------</span>
     </div>
-    <div class="timer-box" id="timer-display" title="Tap untuk reset">00:00</div>
-  </header>
 
-  <div class="counter-bar">
-    <div class="counter-text" id="slide-num">Slide 1 / 1</div>
-    <div class="room-badge" id="room-code">ROOM: ---</div>
-  </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 24px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #30D158;">
+        <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #30D158;"></span>
+        Terhubung ke laptop
+      </div>
+      <h1 style="margin: 0; font-weight: 600; font-size: 34px; line-height: 1.05; letter-spacing: -0.035em;">Siap jadi remote</h1>
+      <div id="c-slide-meta" style="font-size: 15px; color: #8C93A3;">Slide terhubung</div>
+    </div>
 
-  <div class="tab-bar">
-    <button class="tab-btn active" id="tab-clicker">🔘 Clicker</button>
-    <button class="tab-btn" id="tab-touchpad">🖱️ Touchpad</button>
-    <button class="tab-btn" id="tab-gyro">🎯 Gyro Air</button>
-  </div>
+    <div style="background: #171B24; border-radius: 18px; padding: 0 16px;">
+      <div style="display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid #252B38;">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-weight: 500; font-size: 15px;">Sensor gerak</div>
+          <div style="font-size: 13px; line-height: 1.4; color: #8C93A3;">Untuk Air Pointer. Tanpa izin, laser tetap jalan lewat touchpad.</div>
+        </div>
+        <button type="button" id="btn-motion-toggle" style="flex: none; min-height: 36px; padding: 0 14px; border-radius: 999px; border: none; background: #3B5BFF; color: #FFFFFF; font: inherit; font-weight: 600; font-size: 14px; cursor: pointer;">Izinkan</button>
+      </div>
 
-  <main>
-    <div id="mode-clicker">
-      <button class="btn-next" id="btn-next">
-        <span>NEXT ❯</span>
-        <span class="subtext">Ketuk Layar / Geser Kiri</span>
-      </button>
-      <div class="bottom-row">
-        <button class="btn-action" style="flex:1;" id="btn-prev">❮ PREV</button>
-        <button class="btn-action btn-blackout" style="flex:1;" id="btn-blackout">BLANK</button>
+      <div style="display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid #252B38;">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-weight: 500; font-size: 15px;">Layar tetap menyala</div>
+          <div style="font-size: 13px; color: #8C93A3;">Supaya remote tidak putus saat HP terkunci</div>
+        </div>
+        <button type="button" id="btn-toggle-wake" role="switch" aria-checked="true" aria-label="Layar tetap menyala" style="flex: none; position: relative; width: 48px; height: 28px; border-radius: 999px; border: none; padding: 0; cursor: pointer; background: #3B5BFF;">
+          <span id="knob-wake" aria-hidden="true" style="position: absolute; top: 3px; left: 23px; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; transition: left .18s;"></span>
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px; padding: 16px 0;">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-weight: 500; font-size: 15px;">Getar saat ditekan</div>
+          <div style="font-size: 13px; color: #8C93A3;">Haptic feedback di HP</div>
+        </div>
+        <button type="button" id="btn-toggle-haptic" role="switch" aria-checked="true" aria-label="Getar saat ditekan" style="flex: none; position: relative; width: 48px; height: 28px; border-radius: 999px; border: none; padding: 0; cursor: pointer; background: #3B5BFF;">
+          <span id="knob-haptic" aria-hidden="true" style="position: absolute; top: 3px; left: 23px; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; transition: left .18s;"></span>
+        </button>
       </div>
     </div>
 
-    <div id="mode-touchpad">
-      <div class="touchpad-surface" id="touchpad-area">
-        <div class="touchpad-hint">
-          Usap jari untuk gerakkan laser di layar laptop.<br>
-          <span style="font-size:12px; color:var(--accent);">Double tap untuk toggle laser</span>
+    <div style="flex: 1;"></div>
+
+    <button type="button" id="btn-open-remote" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 60px; border-radius: 18px; border: none; background: #3B5BFF; color: #FFFFFF; font-weight: 600; font-size: 17px; cursor: pointer;">
+      Buka remote
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+    </button>
+  </div>
+
+  <!-- VIEW 2: Phone-Remote.dc.html (Mode Tombol) -->
+  <div class="screen" id="view-remote" style="padding: 56px 16px 20px; gap: 10px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding-left: 4px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #A3A9B7;">
+        <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #30D158;"></span>
+        Terhubung
+        <span id="r-ping" style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #8C93A3;">-- ms</span>
+      </div>
+      <button type="button" id="btn-remote-menu" aria-label="Menu sesi" style="width: 44px; height: 44px; border-radius: 12px; border: none; background: #171B24; color: #EDEDED; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
+      </button>
+    </div>
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; padding: 14px 4px 4px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div id="r-timer-caption" style="font-size: 13px; color: #8C93A3;">Durasi</div>
+        <div id="r-time" style="font-family: 'Geist Mono', monospace; font-weight: 500; font-size: 60px; line-height: 1; letter-spacing: -0.04em; color: #EDEDED;">00:00</div>
+      </div>
+      <button type="button" id="btn-r-timer-toggle" aria-label="Jeda timer" style="width: 48px; height: 48px; border-radius: 50%; border: none; background: #171B24; color: #EDEDED; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg id="r-icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+        <svg id="r-icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none;"><path d="M7 5v14l12-7z"></path></svg>
+      </button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 4px 10px;">
+      <div style="display: flex; justify-content: space-between; font-size: 13px; color: #8C93A3;">
+        <span>Slide</span>
+        <span id="r-slide-num" style="font-family: 'Geist Mono', monospace; color: #EDEDED;">1 / 1</span>
+      </div>
+      <div style="height: 3px; border-radius: 999px; background: #232836; overflow: hidden;">
+        <div id="r-progress-bar" style="height: 100%; width: 0%; background: #3B5BFF; transition: width .18s;"></div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+      <button type="button" id="btn-goto-pointer" style="min-height: 64px; border-radius: 18px; border: none; background: #171B24; color: #EDEDED; font: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 500; font-size: 15px; cursor: pointer;">
+        <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #FF2D55; box-shadow: 0 0 0 2px #FFFFFF;"></span>
+        Laser
+      </button>
+      <button type="button" id="btn-r-blackout" style="min-height: 64px; border-radius: 18px; border: none; background: #171B24; color: #EDEDED; font: inherit; font-weight: 500; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+        <span id="r-black-swatch" aria-hidden="true" style="width: 16px; height: 11px; border-radius: 3px; border: 1.5px solid currentColor; background: transparent;"></span>
+        <span id="r-black-label">Layar hitam</span>
+      </button>
+    </div>
+
+    <button type="button" id="btn-r-prev" aria-label="Slide sebelumnya" style="min-height: 76px; border-radius: 20px; border: none; background: #171B24; color: #EDEDED; font: inherit; font-weight: 500; font-size: 17px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg>
+      Sebelumnya
+    </button>
+
+    <button type="button" id="btn-r-next" aria-label="Slide berikutnya" style="flex: 1; min-height: 180px; border-radius: 28px; border: none; background: #3B5BFF; color: #FFFFFF; font: inherit; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer;">
+      <span style="font-weight: 600; font-size: 30px; letter-spacing: -0.03em;">Next</span>
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+    </button>
+
+    <div style="display: flex; justify-content: space-between; padding: 4px 6px 0;">
+      <button type="button" id="btn-switch-onehand" style="background: none; border: none; font-size: 13px; color: #8C93A3; padding: 6px;">Mode geser satu tangan</button>
+      <button type="button" id="btn-r-fullscreen" style="background: none; border: none; font-size: 13px; color: #8C93A3; padding: 6px;">Layar penuh ⛶</button>
+    </div>
+  </div>
+
+  <!-- VIEW 3: Phone-OneHand.dc.html (Mode Satu Tangan) -->
+  <div class="screen" id="view-onehand" style="padding: 56px 16px 12px; gap: 14px;">
+    <div style="display: flex; flex-direction: column; gap: 10px; padding: 0 6px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #8C93A3;">
+        <span style="display: flex; align-items: center; gap: 7px;">
+          <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #30D158;"></span>
+          Terhubung · <span id="oh-ping" style="font-family: 'Geist Mono', monospace;">-- ms</span>
+        </span>
+        <span id="oh-black-hint"></span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between;">
+        <span id="oh-time" style="font-family: 'Geist Mono', monospace; font-weight: 500; font-size: 64px; line-height: 1; letter-spacing: -0.04em;">00:00</span>
+        <span style="font-family: 'Geist Mono', monospace; font-weight: 500; font-size: 30px; letter-spacing: -0.03em;">
+          <span id="oh-slide-cur">1</span><span id="oh-slide-tot" style="color: #6F7687;">/1</span>
+        </span>
+      </div>
+      <div style="height: 3px; border-radius: 999px; background: #232836; overflow: hidden;">
+        <div id="oh-progress-bar" style="height: 100%; width: 0%; background: #3B5BFF; transition: width .18s;"></div>
+      </div>
+    </div>
+
+    <div id="oh-surf" class="surf" role="group" aria-label="Area gesture" style="position: relative; flex: 1; border-radius: 28px; background: #171B24; box-shadow: none; overflow: hidden; cursor: pointer;">
+      <div id="oh-idle-box" style="position: absolute; left: 0; right: 0; top: 38%; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3B5BFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+        <div style="font-size: 15px; color: #8C93A3;">Ketuk di mana saja</div>
+      </div>
+
+      <div id="oh-laser-indicator" style="position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgba(255,45,85,0.08); border: 1.5px solid rgba(255,255,255,0.3); box-sizing: border-box; display: none; align-items: center; justify-content: center; pointer-events: none; z-index: 10;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF2D55; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 3.5px rgba(0,0,0,0.6);"></span>
+      </div>
+      <div id="oh-laser-hint" style="position: absolute; top: 18px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 500; color: #FF6B86; pointer-events: none; display: none;">Laser aktif · lepas untuk mematikan</div>
+
+      <div style="position: absolute; left: 20px; right: 20px; bottom: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; font-size: 12px; color: #8C93A3; pointer-events: none;">
+        <span><span style="color: #C5CAD5;">Tap</span> · next</span>
+        <span><span style="color: #C5CAD5;">Geser →</span> · sebelumnya</span>
+        <span><span style="color: #C5CAD5;">Tahan</span> · laser</span>
+        <span><span style="color: #C5CAD5;">Geser ↓</span> · layar hitam</span>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; padding: 0 6px;">
+      <button type="button" id="btn-goto-buttons" style="background: none; border: none; min-height: 44px; display: flex; align-items: center; font-size: 13px; color: #A3A9B7;">Mode tombol</button>
+      <button type="button" id="btn-onehand-pointer" style="background: none; border: none; min-height: 44px; display: flex; align-items: center; font-size: 13px; color: #A3A9B7;">Air pointer</button>
+    </div>
+  </div>
+
+  <!-- VIEW 4: Phone-Pointer.dc.html (Laser) -->
+  <div class="screen" id="view-pointer" style="padding: 56px 16px 20px; gap: 14px;">
+    <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+      <button type="button" id="btn-back-from-pointer" aria-label="Kembali ke remote" style="width: 44px; height: 44px; border-radius: 12px; border: none; background: #171B24; color: #EDEDED; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg>
+      </button>
+      <div style="flex: 1; font-weight: 600; font-size: 20px; letter-spacing: -0.02em;">Laser</div>
+      <span id="p-slide-badge" style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #8C93A3;">1 / 1</span>
+    </div>
+
+    <div role="group" aria-label="Mode laser" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #171B24;">
+      <button type="button" id="btn-tab-touchpad" style="min-height: 40px; border-radius: 9px; border: none; background: #232836; color: #EDEDED; font: inherit; font-weight: 500; font-size: 15px; cursor: pointer;">Touchpad</button>
+      <button type="button" id="btn-tab-air" style="min-height: 40px; border-radius: 9px; border: none; background: transparent; color: #8C93A3; font: inherit; font-weight: 500; font-size: 15px; cursor: pointer;">Air (gyro)</button>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div role="img" aria-label="Posisi laser di layar proyektor" style="position: relative; flex: none; width: 112px; height: 63px; border-radius: 8px; background: #1E2330; overflow: hidden;">
+        <span id="p-radar-dot" aria-hidden="true" style="position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #FF2D55; box-shadow: 0 0 0 1.5px #FFFFFF; opacity: 1; transition: left .04s, top .04s;"></span>
+      </div>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 13px; color: #8C93A3;">Warna laser</div>
+        <div role="group" aria-label="Warna laser" style="display: flex; gap: 2px; margin-left: -8px;">
+          <button type="button" class="swatch-pick" data-color="#FF2D55" aria-label="Merah" style="width: 44px; height: 44px; border: none; padding: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; background: #FF2D55; box-shadow: 0 0 0 2px #FFFFFF;"></span>
+          </button>
+          <button type="button" class="swatch-pick" data-color="#FFD60A" aria-label="Kuning" style="width: 44px; height: 44px; border: none; padding: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; background: #FFD60A; box-shadow: none;"></span>
+          </button>
+          <button type="button" class="swatch-pick" data-color="#30D158" aria-label="Hijau" style="width: 44px; height: 44px; border: none; padding: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; background: #30D158; box-shadow: none;"></span>
+          </button>
         </div>
       </div>
-      <div class="mini-nav-bar">
-        <button class="btn-action" style="flex:1;" id="btn-tp-prev">❮ PREV</button>
-        <button class="btn-action" style="flex:1; background:var(--accent); color:#fff;" id="btn-tp-next">NEXT ❯</button>
+    </div>
+
+    <!-- Touchpad Box -->
+    <div id="p-box-touchpad" class="pad" role="group" aria-label="Touchpad laser, tekan dan geser" style="position: relative; flex: 1; border-radius: 24px; background: #12161F; overflow: hidden; cursor: crosshair;">
+      <canvas id="p-pad-canvas" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block;"></canvas>
+      <div id="p-touch-idle" style="position: absolute; left: 0; right: 0; bottom: 22px; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none;">
+        <div style="font-size: 15px; font-weight: 500; color: #C5CAD5;">Tekan &amp; geser</div>
+        <div style="font-size: 13px; color: #8C93A3;">Laser nyala selama jari menempel</div>
       </div>
     </div>
 
-    <div id="mode-gyro">
-      <button class="btn-gyro-hold" id="btn-gyro-laser">
-        <span id="gyro-status-label">TAHAN UNTUK LASER</span>
-        <span class="subtext">Arahkan HP ke layar laptop</span>
+    <!-- Air Gyro Box -->
+    <div id="p-box-air" style="display: none; flex: 1; border-radius: 24px; background: #161B27; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 16px;">
+      <div style="font-size: 14px; line-height: 1.5; color: #8C93A3; text-align: center; max-width: 250px;">Arahkan HP ke layar, lalu tahan. Laser mengikuti gerak tangan.</div>
+      <div style="position: relative; width: 168px; height: 168px; color: #FF2D55;">
+        <span id="p-air-pulse1" class="pulse" style="display: none;"></span>
+        <span id="p-air-pulse2" class="pulse d2" style="display: none;"></span>
+        <button type="button" id="btn-air-hold" style="position: absolute; inset: 0; border-radius: 50%; border: none; background: #EDEDED; color: #0D1017; font: inherit; font-weight: 600; font-size: 17px; cursor: pointer; touch-action: none;">Tahan untuk laser</button>
+      </div>
+      <button type="button" id="btn-air-calib" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: none; background: #1E2330; color: #EDEDED; font: inherit; font-weight: 500; font-size: 14px; cursor: pointer;">Kalibrasi ke tengah layar</button>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 250px; font-size: 13px; color: #8C93A3;">
+        <span>Sensitivitas</span>
+        <input type="range" id="input-gyro-sens" min="0.8" max="4.0" step="0.2" value="2.2" style="flex: 1; accent-color: #3B5BFF; cursor: pointer;">
+        <span id="val-gyro-sens" style="min-width: 32px; text-align: right; color: #EDEDED; font-family: monospace;">2.2x</span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+      <button type="button" id="btn-p-prev" aria-label="Slide sebelumnya" style="min-height: 64px; border-radius: 18px; border: none; background: #1E2330; color: #EDEDED; font: inherit; font-weight: 500; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg>
+        Sebelumnya
       </button>
-      <div class="mini-nav-bar">
-        <button class="btn-action" style="flex:1;" id="btn-gyro-center">🎯 Center</button>
-        <button class="btn-action" style="flex:1;" id="btn-gyro-prev">❮ PREV</button>
-        <button class="btn-action" style="flex:1; background:var(--accent); color:#fff;" id="btn-gyro-next">NEXT ❯</button>
-      </div>
+      <button type="button" id="btn-p-next" aria-label="Slide berikutnya" style="min-height: 64px; border-radius: 18px; border: none; background: #3B5BFF; color: #FFFFFF; font: inherit; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+        Next
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>
+      </button>
     </div>
-  </main>
-
-  <div id="modal-join">
-    <h2 style="margin-bottom:16px;">Masukkan Kode Room</h2>
-    <input type="text" id="input-room" maxlength="6" placeholder="KODE">
-    <button id="btn-join">Masuk</button>
   </div>
 
   <script>
+    // App State
     let ws = null;
     let roomId = new URLSearchParams(location.search).get('room');
+    let currentSlide = 1;
+    let totalSlides = 1;
     let isBlackout = false;
+    let laserColor = '#FF2D55';
+    let wakeEnabled = true;
+    let hapticEnabled = true;
+    let wakeSentinel = null;
+
+    // Timer
     let timerSec = 0;
+    let timerRunning = true;
     let timerInterval = null;
 
-    let pointerX = 50;
-    let pointerY = 50;
-    let sendThrottled = false;
-
+    // Laser
+    let laserX = 50;
+    let laserY = 50;
+    let gyroOn = false;
     let centerBeta = 45;
     let centerGamma = 0;
-    let gyroActive = false;
+    let centerYaw = 0;
+    let lastBeta = 45;
+    let lastGamma = 0;
+    let lastYaw = 0;
+    let hasYaw = false;
+    let gyroSens = Number(localStorage.getItem('nongle_gyro_sens')) || 2.2;
+    // UI screen references
+    const views = {
+      join: document.getElementById('view-join'),
+      connect: document.getElementById('view-connect'),
+      remote: document.getElementById('view-remote'),
+      onehand: document.getElementById('view-onehand'),
+      pointer: document.getElementById('view-pointer')
+    };
 
-    // Auto Fullscreen on first user interaction
-    function triggerAutoFullscreen() {
-      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
+    function showView(name) {
+      Object.keys(views).forEach(k => views[k].classList.toggle('active', k === name));
+      if (name !== 'pointer' && name !== 'onehand') {
+        sendLaser(false);
       }
     }
-    document.addEventListener('touchstart', triggerAutoFullscreen, { once: true });
-    document.addEventListener('click', triggerAutoFullscreen, { once: true });
 
-    function vibrate() {
-      if (navigator.vibrate) navigator.vibrate(30);
-    }
-
-    async function keepScreenOn() {
-      if ('wakeLock' in navigator) {
-        try { await navigator.wakeLock.request('screen'); } catch (e) {}
+    // Fullscreen trigger (auto triggers on tap/interaction)
+    function goFullscreen() {
+      const el = document.documentElement;
+      if (!document.fullscreenElement && el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {});
       }
     }
-    document.addEventListener('touchstart', keepScreenOn, { once: true });
+    document.addEventListener('touchstart', goFullscreen, { once: true });
+    document.addEventListener('click', goFullscreen, { once: true });
+    document.getElementById('btn-r-fullscreen').onclick = goFullscreen;
 
+    function buzz(ms = 12) {
+      if (!hapticEnabled) return;
+      try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {}
+    }
+
+    async function reqWakeLock() {
+      if (!wakeEnabled || !('wakeLock' in navigator)) return;
+      try {
+        wakeSentinel = await navigator.wakeLock.request('screen');
+      } catch (_) {}
+    }
+
+    // Timer logic
     function startTimer() {
       if (timerInterval) return;
       timerInterval = setInterval(() => {
+        if (!timerRunning) return;
         timerSec++;
-        const m = String(Math.floor(timerSec / 60)).padStart(2, '0');
-        const s = String(timerSec % 60).padStart(2, '0');
-        document.getElementById('timer-display').textContent = `${m}:${s}`;
+        updateTimerUI();
       }, 1000);
     }
 
-    document.getElementById('timer-display').onclick = () => {
-      if (confirm('Reset timer ke 00:00?')) {
-        timerSec = 0;
-        document.getElementById('timer-display').textContent = '00:00';
-      }
+    function updateTimerUI() {
+      const m = String(Math.floor(timerSec / 60)).padStart(2, '0');
+      const s = String(timerSec % 60).padStart(2, '0');
+      const str = `${m}:${s}`;
+      document.getElementById('r-time').textContent = str;
+      document.getElementById('oh-time').textContent = str;
+    }
+
+    document.getElementById('btn-r-timer-toggle').onclick = () => {
+      buzz();
+      timerRunning = !timerRunning;
+      document.getElementById('r-icon-pause').style.display = timerRunning ? 'block' : 'none';
+      document.getElementById('r-icon-play').style.display = timerRunning ? 'none' : 'block';
+      document.getElementById('r-timer-caption').textContent = timerRunning ? 'Durasi' : 'Dijeda';
+      document.getElementById('r-time').style.color = timerRunning ? '#EDEDED' : '#8C93A3';
     };
 
-    function connectWS() {
-      if (!roomId) {
-        document.getElementById('modal-join').style.display = 'flex';
-        return;
-      }
-
-      document.getElementById('room-code').textContent = `ROOM: ${roomId.toUpperCase()}`;
+    // WebSocket
+    function connectWS(code) {
+      if (!code) return;
+      roomId = code.toUpperCase();
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${proto}//${location.host}`);
 
       ws.onopen = () => {
-        document.getElementById('net-dot').classList.add('live');
-        document.getElementById('net-text').textContent = 'Terhubung';
-        ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId: roomId.toUpperCase() }));
-        startTimer();
+        ws.send(JSON.stringify({ type: 'JOIN_ROOM', roomId }));
+        setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PING', ts: Date.now() }));
+          }
+        }, 3500);
       };
 
       ws.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'ROOM_JOINED') {
-          updateDisplay(msg.state.currentSlide, msg.state.totalSlides);
-          setBlackoutUI(msg.state.isBlackout);
-        } else if (msg.type === 'STATE_UPDATED') {
-          updateDisplay(msg.currentSlide, msg.totalSlides);
-        } else if (msg.type === 'BLACKOUT_UPDATED') {
-          setBlackoutUI(msg.isBlackout);
-        } else if (msg.type === 'VIEWER_DISCONNECTED') {
-          alert('Laptop viewer terputus.');
-        } else if (msg.type === 'ERROR') {
-          alert(msg.message);
-          location.search = '';
-        }
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'ROOM_JOINED') {
+            document.getElementById('c-room-code').textContent = roomId;
+            if (msg.state) {
+              currentSlide = msg.state.currentSlide || 1;
+              totalSlides = msg.state.totalSlides || 1;
+              isBlackout = Boolean(msg.state.isBlackout);
+              syncSlideUI();
+              syncBlackoutUI();
+            }
+            document.getElementById('c-slide-meta').textContent = `${totalSlides} slide terhubung`;
+            showView('connect');
+          } else if (msg.type === 'STATE_UPDATED') {
+            currentSlide = msg.currentSlide;
+            totalSlides = msg.totalSlides;
+            syncSlideUI();
+          } else if (msg.type === 'BLACKOUT_UPDATED') {
+            isBlackout = Boolean(msg.isBlackout);
+            syncBlackoutUI();
+          } else if (msg.type === 'PONG') {
+            const rtt = Date.now() - msg.ts;
+            document.getElementById('r-ping').textContent = `${rtt} ms`;
+            document.getElementById('oh-ping').textContent = `${rtt} ms`;
+          }
+        } catch (_) {}
       };
 
       ws.onclose = () => {
-        document.getElementById('net-dot').classList.remove('live');
-        document.getElementById('net-text').textContent = 'Terputus (Retry...)';
-        setTimeout(connectWS, 2000);
+        document.getElementById('r-ping').textContent = 'Terputus';
+        document.getElementById('oh-ping').textContent = 'Terputus';
+        setTimeout(() => { if (roomId) connectWS(roomId); }, 2000);
       };
     }
 
-    function updateDisplay(current, total) {
-      document.getElementById('slide-num').textContent = `Slide ${current} / ${total}`;
-    }
-
-    function setBlackoutUI(state) {
-      isBlackout = Boolean(state);
-      document.getElementById('btn-blackout').classList.toggle('active', isBlackout);
-    }
-
     function sendNav(action) {
-      vibrate();
+      buzz(12);
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'NAVIGATE', action }));
       }
     }
 
-    function sendPointer(visible, x, y) {
+    const radarDot = document.getElementById('p-radar-dot');
+    let sentVisible = null, sentX = -1, sentY = -1;
+
+    function sendLaser(visible, x = laserX, y = laserY) {
+      // 0.01% steps: sub-pixel on 4K, vs 1% (~19px on 1080p) before.
+      laserX = Math.round(Math.max(0, Math.min(100, x)) * 100) / 100;
+      laserY = Math.round(Math.max(0, Math.min(100, y)) * 100) / 100;
+      if (visible === sentVisible && laserX === sentX && laserY === sentY) return;
+
+      radarDot.style.left = `${laserX}%`;
+      radarDot.style.top = `${laserY}%`;
+      radarDot.style.opacity = visible ? 1 : 0.3;
+
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      if (sendThrottled) return;
-      sendThrottled = true;
-      requestAnimationFrame(() => {
-        ws.send(JSON.stringify({
-          type: 'POINTER_MOVE',
-          visible,
-          x: Math.max(0, Math.min(100, x)),
-          y: Math.max(0, Math.min(100, y))
-        }));
-        sendThrottled = false;
-      });
+      // Slow network: drop stale moves instead of queueing lag; hide always goes out.
+      if (visible && ws.bufferedAmount > 1024) return;
+      ws.send(JSON.stringify({
+        type: 'POINTER_MOVE',
+        visible,
+        x: laserX,
+        y: laserY,
+        color: laserColor
+      }));
+      sentVisible = visible; sentX = laserX; sentY = laserY;
     }
 
-    const tabClicker = document.getElementById('tab-clicker');
-    const tabTouchpad = document.getElementById('tab-touchpad');
-    const tabGyro = document.getElementById('tab-gyro');
-    const viewClicker = document.getElementById('mode-clicker');
-    const viewTouchpad = document.getElementById('mode-touchpad');
-    const viewGyro = document.getElementById('mode-gyro');
-
-    function switchTab(mode) {
-      [tabClicker, tabTouchpad, tabGyro].forEach(b => b.classList.remove('active'));
-      [viewClicker, viewTouchpad, viewGyro].forEach(v => v.style.display = 'none');
-      sendPointer(false, pointerX, pointerY);
-
-      if (mode === 'clicker') {
-        tabClicker.classList.add('active');
-        viewClicker.style.display = 'flex';
-      } else if (mode === 'touchpad') {
-        tabTouchpad.classList.add('active');
-        viewTouchpad.style.display = 'flex';
-      } else if (mode === 'gyro') {
-        tabGyro.classList.add('active');
-        viewGyro.style.display = 'flex';
-        requestGyroPermission();
-      }
-    }
-
-    tabClicker.onclick = () => switchTab('clicker');
-    tabTouchpad.onclick = () => switchTab('touchpad');
-    tabGyro.onclick = () => switchTab('gyro');
-
-    document.getElementById('btn-next').onclick = () => sendNav('NEXT');
-    document.getElementById('btn-prev').onclick = () => sendNav('PREV');
-    document.getElementById('btn-blackout').onclick = () => {
-      vibrate();
+    function toggleBlackout() {
+      buzz(20);
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'SET_BLACKOUT', state: !isBlackout }));
       }
+    }
+
+    function syncSlideUI() {
+      const pct = Math.round((currentSlide / Math.max(1, totalSlides)) * 100) + '%';
+      document.getElementById('r-slide-num').textContent = `${currentSlide} / ${totalSlides}`;
+      document.getElementById('r-progress-bar').style.width = pct;
+      document.getElementById('oh-slide-cur').textContent = currentSlide;
+      document.getElementById('oh-slide-tot').textContent = `/${totalSlides}`;
+      document.getElementById('oh-progress-bar').style.width = pct;
+      document.getElementById('p-slide-badge').textContent = `${currentSlide} / ${totalSlides}`;
+    }
+
+    function syncBlackoutUI() {
+      const btn = document.getElementById('btn-r-blackout');
+      const swatch = document.getElementById('r-black-swatch');
+      const lbl = document.getElementById('r-black-label');
+      const hint = document.getElementById('oh-black-hint');
+
+      if (isBlackout) {
+        btn.style.background = '#EDEDED';
+        btn.style.color = '#0D1017';
+        swatch.style.background = '#0D1017';
+        lbl.textContent = 'Layar hitam aktif';
+        hint.textContent = 'Layar hitam aktif';
+        hint.style.color = '#FF453A';
+      } else {
+        btn.style.background = '#171B24';
+        btn.style.color = '#EDEDED';
+        swatch.style.background = 'transparent';
+        lbl.textContent = 'Layar hitam';
+        hint.textContent = '';
+      }
+    }
+
+    // View 1 (Connect Screen) actions
+    document.getElementById('btn-open-remote').onclick = () => {
+      buzz();
+      reqWakeLock();
+      startTimer();
+      showView('remote');
     };
 
-    document.getElementById('btn-tp-next').onclick = () => sendNav('NEXT');
-    document.getElementById('btn-tp-prev').onclick = () => sendNav('PREV');
-    document.getElementById('btn-gyro-next').onclick = () => sendNav('NEXT');
-    document.getElementById('btn-gyro-prev').onclick = () => sendNav('PREV');
+    document.getElementById('btn-remote-menu').onclick = () => {
+      buzz();
+      showView('connect');
+    };
 
-    // Touchpad logic
-    const tpArea = document.getElementById('touchpad-area');
-    let tpLastX = 0, tpLastY = 0;
-    let lastTapTime = 0;
-    let tpPointerActive = true;
+    document.getElementById('btn-toggle-wake').onclick = function() {
+      buzz();
+      wakeEnabled = !wakeEnabled;
+      this.style.background = wakeEnabled ? '#3B5BFF' : '#252B38';
+      document.getElementById('knob-wake').style.left = wakeEnabled ? '23px' : '3px';
+      if (wakeEnabled) reqWakeLock();
+      else if (wakeSentinel) { wakeSentinel.release(); wakeSentinel = null; }
+    };
 
-    tpArea.addEventListener('touchstart', (e) => {
-      const touch = e.touches[0];
-      tpLastX = touch.clientX;
-      tpLastY = touch.clientY;
+    document.getElementById('btn-toggle-haptic').onclick = function() {
+      hapticEnabled = !hapticEnabled;
+      buzz();
+      this.style.background = hapticEnabled ? '#3B5BFF' : '#252B38';
+      document.getElementById('knob-haptic').style.left = hapticEnabled ? '23px' : '3px';
+    };
 
-      const now = Date.now();
-      if (now - lastTapTime < 300) {
-        tpPointerActive = !tpPointerActive;
-        vibrate();
-      }
-      lastTapTime = now;
-      sendPointer(tpPointerActive, pointerX, pointerY);
-    }, { passive: false });
-
-    tpArea.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const deltaX = (touch.clientX - tpLastX) * 0.35;
-      const deltaY = (touch.clientY - tpLastY) * 0.35;
-      tpLastX = touch.clientX;
-      tpLastY = touch.clientY;
-
-      pointerX = Math.max(2, Math.min(98, pointerX + deltaX));
-      pointerY = Math.max(2, Math.min(98, pointerY + deltaY));
-      sendPointer(tpPointerActive, pointerX, pointerY);
-    }, { passive: false });
-
-    // Gyro Pointer logic
-    const gyroLaserBtn = document.getElementById('btn-gyro-laser');
-    const gyroLabel = document.getElementById('gyro-status-label');
-
-    function requestGyroPermission() {
+    document.getElementById('btn-motion-toggle').onclick = async function() {
+      buzz();
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(resp => {
-          if (resp === 'granted') window.addEventListener('deviceorientation', handleOrientation);
-        }).catch(() => {});
-      } else if (window.DeviceOrientationEvent) {
-        window.addEventListener('deviceorientation', handleOrientation);
-      }
-    }
-
-    function handleOrientation(e) {
-      if (!gyroActive || e.beta === null || e.gamma === null) return;
-      const sensitivity = 2.2;
-      const dGamma = (e.gamma - centerGamma) * sensitivity;
-      const dBeta = (e.beta - centerBeta) * sensitivity;
-
-      pointerX = Math.max(2, Math.min(98, 50 + dGamma));
-      pointerY = Math.max(2, Math.min(98, 50 + dBeta));
-      sendPointer(true, pointerX, pointerY);
-    }
-
-    document.getElementById('btn-gyro-center').onclick = () => {
-      vibrate();
-      pointerX = 50;
-      pointerY = 50;
-      sendPointer(true, 50, 50);
-    };
-
-    function startGyroLaser(e) {
-      e.preventDefault();
-      gyroActive = true;
-      gyroLaserBtn.classList.add('active');
-      gyroLabel.textContent = 'LASER AKTIF 🎯';
-      vibrate();
-      sendPointer(true, pointerX, pointerY);
-    }
-
-    function stopGyroLaser(e) {
-      e.preventDefault();
-      gyroActive = false;
-      gyroLaserBtn.classList.remove('active');
-      gyroLabel.textContent = 'TAHAN UNTUK LASER';
-      sendPointer(false, pointerX, pointerY);
-    }
-
-    gyroLaserBtn.addEventListener('touchstart', startGyroLaser, { passive: false });
-    gyroLaserBtn.addEventListener('touchend', stopGyroLaser, { passive: false });
-    gyroLaserBtn.addEventListener('touchcancel', stopGyroLaser, { passive: false });
-
-    // Swipe on clicker
-    let touchStartX = 0;
-    viewClicker.addEventListener('touchstart', (e) => {
-      touchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
-
-    viewClicker.addEventListener('touchend', (e) => {
-      const diffX = e.changedTouches[0].screenX - touchStartX;
-      if (diffX < -60) sendNav('NEXT');
-      if (diffX > 60) sendNav('PREV');
-    }, { passive: true });
-
-    document.getElementById('btn-join').onclick = () => {
-      const val = document.getElementById('input-room').value.trim().toUpperCase();
-      if (val.length >= 4) {
-        location.search = `?room=${val}`;
+        try {
+          const res = await DeviceOrientationEvent.requestPermission();
+          if (res === 'granted') {
+            this.textContent = 'Aktif';
+            this.style.background = 'transparent';
+            this.style.color = '#30D158';
+          }
+        } catch (_) {}
+      } else {
+        this.textContent = 'Aktif';
+        this.style.background = 'transparent';
+        this.style.color = '#30D158';
       }
     };
 
-    // Hardware Volume buttons as remote clicker
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'VolumeUp' || e.key === 'AudioVolumeUp') {
-        e.preventDefault();
-        sendNav('NEXT');
-      } else if (e.key === 'VolumeDown' || e.key === 'AudioVolumeDown') {
-        e.preventDefault();
-        sendNav('PREV');
+    // View 2 (Button Remote) actions
+    document.getElementById('btn-r-next').onclick = () => sendNav('NEXT');
+    document.getElementById('btn-r-prev').onclick = () => sendNav('PREV');
+    document.getElementById('btn-r-blackout').onclick = toggleBlackout;
+    document.getElementById('btn-goto-pointer').onclick = () => showView('pointer');
+    document.getElementById('btn-switch-onehand').onclick = () => showView('onehand');
+
+    // View 3 (OneHand Gesture Remote) actions
+    document.getElementById('btn-goto-buttons').onclick = () => showView('remote');
+    document.getElementById('btn-onehand-pointer').onclick = () => showView('pointer');
+
+    const surf = document.getElementById('oh-surf');
+    let sStartX = 0, sStartY = 0;
+    let sHoldTimer = null;
+    let sIsLaser = false;
+
+    surf.addEventListener('pointerdown', (e) => {
+      sStartX = e.clientX;
+      sStartY = e.clientY;
+      sIsLaser = false;
+
+      sHoldTimer = setTimeout(() => {
+        sIsLaser = true;
+        buzz(25);
+        document.getElementById('oh-laser-hint').style.display = 'block';
+        updateOneHandLaser(e);
+      }, 260);
+    });
+
+    surf.addEventListener('pointermove', (e) => {
+      if (sIsLaser) {
+        updateOneHandLaser(e);
       }
     });
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    function updateOneHandLaser(e) {
+      const rect = surf.getBoundingClientRect();
+      const dot = document.getElementById('oh-laser-indicator');
+      dot.style.display = 'flex';
+      dot.style.left = `${e.clientX - rect.left}px`;
+      dot.style.top = `${e.clientY - rect.top}px`;
+
+      const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+      const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+      sendLaser(true, x, y);
     }
 
-    connectWS();
+    surf.addEventListener('pointerup', (e) => {
+      clearTimeout(sHoldTimer);
+      if (sIsLaser) {
+        sIsLaser = false;
+        document.getElementById('oh-laser-indicator').style.display = 'none';
+        document.getElementById('oh-laser-hint').style.display = 'none';
+        sendLaser(false);
+        return;
+      }
+
+      const dx = e.clientX - sStartX;
+      const dy = e.clientY - sStartY;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < 14) {
+        // Tap -> Next
+        addRipple(e.clientX, e.clientY, '#3B5BFF', false);
+        sendNav('NEXT');
+      } else if (dx > 40 && Math.abs(dy) < 60) {
+        // Swipe Right -> Prev
+        addRipple(e.clientX, e.clientY, '#EDEDED', true);
+        addFlash('Sebelumnya');
+        sendNav('PREV');
+      } else if (dy > 45 && Math.abs(dx) < 60) {
+        // Swipe Down -> Blackout
+        addFlash('Layar hitam');
+        toggleBlackout();
+      }
+    });
+
+    surf.addEventListener('pointercancel', () => {
+      clearTimeout(sHoldTimer);
+      if (sIsLaser) {
+        sIsLaser = false;
+        document.getElementById('oh-laser-indicator').style.display = 'none';
+        document.getElementById('oh-laser-hint').style.display = 'none';
+        sendLaser(false);
+      }
+    });
+
+    function addRipple(cx, cy, color, isSweep) {
+      const rect = surf.getBoundingClientRect();
+      const wrap = document.createElement('div');
+      wrap.className = 'ripw';
+      wrap.style.left = `${cx - rect.left}px`;
+      wrap.style.top = `${cy - rect.top}px`;
+      wrap.style.color = color;
+
+      const rip = document.createElement('div');
+      rip.className = isSweep ? 'rip rip-s' : 'rip';
+      wrap.appendChild(rip);
+      surf.appendChild(wrap);
+      setTimeout(() => wrap.remove(), 800);
+    }
+
+    function addFlash(text) {
+      const f = document.createElement('div');
+      f.className = 'flash';
+      f.textContent = text;
+      surf.appendChild(f);
+      setTimeout(() => f.remove(), 700);
+    }
+
+    // View 4 (Laser Screen) actions
+    document.getElementById('btn-back-from-pointer').onclick = () => showView('remote');
+    document.getElementById('btn-p-prev').onclick = () => sendNav('PREV');
+    document.getElementById('btn-p-next').onclick = () => sendNav('NEXT');
+
+    const btnTabTp = document.getElementById('btn-tab-touchpad');
+    const btnTabAir = document.getElementById('btn-tab-air');
+    const boxTp = document.getElementById('p-box-touchpad');
+    const boxAir = document.getElementById('p-box-air');
+
+    btnTabTp.onclick = () => {
+      buzz();
+      btnTabTp.style.background = '#232836';
+      btnTabTp.style.color = '#EDEDED';
+      btnTabAir.style.background = 'transparent';
+      btnTabAir.style.color = '#8C93A3';
+      boxTp.style.display = 'block';
+      boxAir.style.display = 'none';
+    };
+
+    btnTabAir.onclick = () => {
+      buzz();
+      btnTabAir.style.background = '#232836';
+      btnTabAir.style.color = '#EDEDED';
+      btnTabTp.style.background = 'transparent';
+      btnTabTp.style.color = '#8C93A3';
+      boxTp.style.display = 'none';
+      boxAir.style.display = 'flex';
+    };
+
+    // Color Swatches
+    document.querySelectorAll('.swatch-pick').forEach(btn => {
+      btn.onclick = () => {
+        buzz();
+        document.querySelectorAll('.swatch-pick span').forEach(s => s.style.boxShadow = 'none');
+        btn.querySelector('span').style.boxShadow = '0 0 0 2px #FFFFFF';
+        laserColor = btn.dataset.color;
+        document.getElementById('p-radar-dot').style.background = laserColor;
+        document.getElementById('btn-air-hold').style.color = '#0D1017';
+      };
+    });
+
+    // Touchpad interactive mesh canvas animation from prototype
+    const cv = document.getElementById('p-pad-canvas');
+    const meshG = { amp: 0, vel: 0, target: 0, cx: 0, cy: 0, tx: 0, ty: 0, waves: [], last: 0 };
+    let meshRaf = null;
+
+    function rgbFromHex(hex) {
+      const n = parseInt(hex.slice(1), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+
+    function kickMesh() {
+      if (!meshRaf) meshRaf = requestAnimationFrame(renderMesh);
+    }
+
+    function renderMesh(now) {
+      meshRaf = null;
+      if (!cv || cv.offsetParent === null) return;
+      const g = meshG;
+      const dt = g.last ? Math.min(0.05, (now - g.last) / 1000) : 0.016;
+      g.last = now;
+      const acc = 230 * (g.target - g.amp) - 13 * g.vel;
+      g.vel += acc * dt;
+      g.amp += g.vel * dt;
+      const k = Math.min(1, dt * 22);
+      g.cx += (g.tx - g.cx) * k;
+      g.cy += (g.ty - g.cy) * k;
+      g.waves = g.waves.filter(w => now - w.t < 1100);
+
+      const w = cv.offsetWidth, h = cv.offsetHeight, dpr = window.devicePixelRatio || 1;
+      if (!w || !h) return;
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+        cv.width = Math.round(w * dpr);
+        cv.height = Math.round(h * dpr);
+      }
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      const amp = Math.max(-0.4, g.amp), cx = g.cx, cy = g.cy, waves = g.waves;
+      const base = [120, 132, 158], lc = rgbFromHex(laserColor);
+      const S = 22, sig = 66, cols = Math.ceil(w / S) + 2, rows = Math.ceil(h / S) + 2;
+      const ox = (w - (cols - 1) * S) / 2, oy = (h - (rows - 1) * S) / 2;
+      const P = [], L = [];
+
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          const x = ox + i * S, y = oy + j * S;
+          const dx = x - cx, dy = y - cy, d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+          const q = d / sig;
+          const push = amp * 20 * q * Math.exp(0.5 - q * q / 2);
+          let lift = Math.max(0, amp) * Math.exp(-(d * d) / (2 * (sig * 1.25) * (sig * 1.25)));
+          let px = x + dx / d * push, py = y + dy / d * push;
+
+          for (let n = 0; n < waves.length; n++) {
+            const wv = waves[n], age = (now - wv.t) / 1000;
+            const wx = x - wv.x, wy = y - wv.y, wd = Math.sqrt(wx * wx + wy * wy) || 0.001;
+            const r = 300 * age, band = wd - r;
+            const fade = Math.pow(1 - age / 1.1, 2);
+            const s = 7 * wv.a * fade * Math.exp(-(band * band) / (2 * 15 * 15));
+            px += wx / wd * s; py += wy / wd * s;
+            lift += 0.35 * s / 7;
+          }
+          P.push(px, py); L.push(Math.min(1, lift));
+        }
+      }
+
+      if (amp > 0.02) {
+        const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, 110);
+        gr.addColorStop(0, `rgba(${lc[0]},${lc[1]},${lc[2]},${0.14 * Math.min(1, amp)})`);
+        gr.addColorStop(1, `rgba(${lc[0]},${lc[1]},${lc[2]},0)`);
+        ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+      }
+
+      function seg(a, b) {
+        const t = (L[a] + L[b]) / 2;
+        const cr = Math.round(base[0] + (lc[0] - base[0]) * t * 0.9);
+        const cg = Math.round(base[1] + (lc[1] - base[1]) * t * 0.9);
+        const cb = Math.round(base[2] + (lc[2] - base[2]) * t * 0.9);
+        ctx.strokeStyle = `rgba(${cr},${cg},${cb},${0.16 + 0.6 * t})`;
+        ctx.lineWidth = 1 + 0.8 * t;
+        ctx.beginPath(); ctx.moveTo(P[a * 2], P[a * 2 + 1]); ctx.lineTo(P[b * 2], P[b * 2 + 1]); ctx.stroke();
+      }
+
+      for (let jj = 0; jj < rows; jj++) {
+        for (let ii = 0; ii < cols; ii++) {
+          const id = jj * cols + ii;
+          if (ii < cols - 1) seg(id, id + 1);
+          if (jj < rows - 1) seg(id, id + cols);
+        }
+      }
+
+      if (g.target > 0 || amp > 0.15) {
+        ctx.globalAlpha = Math.min(1, Math.max(0, amp));
+        ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, 8.5, 0, Math.PI * 2); ctx.fillStyle = '#FFFFFF'; ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fillStyle = laserColor; ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      const active = g.target > 0 || Math.abs(g.amp) > 0.002 || Math.abs(g.vel) > 0.002 || waves.length > 0;
+      if (active) meshRaf = requestAnimationFrame(renderMesh);
+      else { g.amp = 0; g.vel = 0; g.last = 0; }
+    }
+
+    boxTp.addEventListener('pointerdown', (e) => {
+      boxTp.setPointerCapture(e.pointerId);
+      const rect = boxTp.getBoundingClientRect();
+      meshG.tx = meshG.cx = e.clientX - rect.left;
+      meshG.ty = meshG.cy = e.clientY - rect.top;
+      meshG.target = 1;
+      meshG.waves.push({ x: meshG.cx, y: meshG.cy, a: 1, t: performance.now() });
+      kickMesh();
+      updateTouchLaser(e);
+      sendLaser(true, laserX, laserY);
+    });
+    boxTp.addEventListener('pointermove', (e) => {
+      if (meshG.target > 0) {
+        const rect = boxTp.getBoundingClientRect();
+        meshG.tx = e.clientX - rect.left;
+        meshG.ty = e.clientY - rect.top;
+        kickMesh();
+        updateTouchLaser(e);
+        sendLaser(true, laserX, laserY);
+      }
+    });
+    function releaseTouchpad() {
+      if (meshG.target > 0) {
+        meshG.target = 0;
+        meshG.waves.push({ x: meshG.cx, y: meshG.cy, a: 0.6, t: performance.now() });
+        kickMesh();
+      }
+      sendLaser(false);
+    }
+    boxTp.addEventListener('pointerup', releaseTouchpad);
+    boxTp.addEventListener('pointercancel', releaseTouchpad);
+
+    function updateTouchLaser(e) {
+      const rect = boxTp.getBoundingClientRect();
+      laserX = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+      laserY = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+    }
+
+    // Gyro Air Pointer
+    const btnAirHold = document.getElementById('btn-air-hold');
+    const p1 = document.getElementById('p-air-pulse1');
+    const p2 = document.getElementById('p-air-pulse2');
+
+    function startAirLaser(e) {
+      e.preventDefault();
+      buzz(20);
+      filtX = oneEuro(); filtY = oneEuro();
+      gyroOn = true;
+      btnAirHold.style.background = laserColor;
+      btnAirHold.style.color = '#FFFFFF';
+      btnAirHold.textContent = 'Laser aktif';
+      p1.style.color = laserColor;
+      p2.style.color = laserColor;
+      p1.style.display = 'block';
+      p2.style.display = 'block';
+      sendLaser(true, laserX, laserY);
+    }
+
+    function stopAirLaser() {
+      if (!gyroOn) return;
+      gyroOn = false;
+      btnAirHold.style.background = '#EDEDED';
+      btnAirHold.style.color = '#0D1017';
+      btnAirHold.textContent = 'Tahan untuk laser';
+      p1.style.display = 'none';
+      p2.style.display = 'none';
+      sendLaser(false);
+    }
+
+    btnAirHold.addEventListener('pointerdown', startAirLaser);
+    btnAirHold.addEventListener('pointerup', stopAirLaser);
+    btnAirHold.addEventListener('pointerleave', stopAirLaser);
+    btnAirHold.addEventListener('pointercancel', stopAirLaser);
+
+    function getYaw(e) {
+      if (typeof e.webkitCompassHeading === 'number') {
+        return e.webkitCompassHeading;
+      }
+      if (typeof e.alpha === 'number') {
+        return (360 - e.alpha) % 360;
+      }
+      return null;
+    }
+
+    // One Euro filter: kills hand tremor when still, near-zero lag when moving fast.
+    function oneEuro(minCutoff = 3.0, beta = 0.5, dCutoff = 1.0) {
+      let x = null, dx = 0, t = 0;
+      const alpha = (cutoff, dt) => 1 / (1 + 1 / (2 * Math.PI * cutoff * dt));
+      return (v, now) => {
+        if (x === null) { x = v; t = now; return v; }
+        const dt = Math.max((now - t) / 1000, 1e-3);
+        t = now;
+        const ad = alpha(dCutoff, dt);
+        dx = ad * ((v - x) / dt) + (1 - ad) * dx;
+        const a = alpha(minCutoff + beta * Math.abs(dx), dt);
+        return (x = a * v + (1 - a) * x);
+      };
+    }
+    let filtX = oneEuro(), filtY = oneEuro();
+
+    // Sensor already fires ~60Hz; sendLaser dedupes, so send immediately (no extra frame of delay).
+    window.addEventListener('deviceorientation', (e) => {
+      const yaw = getYaw(e);
+      if (yaw !== null) {
+        lastYaw = yaw;
+        if (!hasYaw) {
+          centerYaw = yaw;
+          hasYaw = true;
+        }
+      }
+      if (e.beta !== null) lastBeta = e.beta;
+      if (e.gamma !== null) lastGamma = e.gamma;
+      if (!gyroOn || e.beta === null) return;
+
+      let dX = 0;
+      if (yaw !== null) {
+        let dYaw = yaw - centerYaw;
+        while (dYaw > 180) dYaw -= 360;
+        while (dYaw < -180) dYaw += 360;
+        dX = dYaw * gyroSens;
+      } else if (e.gamma !== null) {
+        dX = (e.gamma - centerGamma) * gyroSens;
+      }
+
+      const dBeta = (centerBeta - e.beta) * gyroSens;
+      const now = e.timeStamp || performance.now();
+      laserX = filtX(50 + dX, now);
+      laserY = filtY(50 + dBeta, now);
+      sendLaser(true, laserX, laserY);
+    });
+
+    document.getElementById('btn-air-calib').onclick = () => {
+      buzz(15);
+      centerYaw = lastYaw;
+      centerBeta = lastBeta;
+      centerGamma = lastGamma;
+      laserX = 50;
+      laserY = 50;
+      sendLaser(false, 50, 50);
+    };
+    const inputGyroSens = document.getElementById('input-gyro-sens');
+    const valGyroSens = document.getElementById('val-gyro-sens');
+    inputGyroSens.value = gyroSens;
+    valGyroSens.textContent = gyroSens.toFixed(1) + 'x';
+    inputGyroSens.oninput = (e) => {
+      gyroSens = Number(e.target.value);
+      valGyroSens.textContent = gyroSens.toFixed(1) + 'x';
+      localStorage.setItem('nongle_gyro_sens', gyroSens);
+    };
+
+    // Join submit
+    document.getElementById('btn-join-submit').onclick = () => {
+      const code = document.getElementById('input-join-room').value.trim();
+      if (code) {
+        buzz();
+        connectWS(code);
+      }
+    };
+
+    // Init
+    if (roomId) {
+      connectWS(roomId);
+    } else {
+      showView('join');
+    }
   </script>
 </body>
 </html>

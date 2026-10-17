@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nongle — Zero-Dongle Presentation Hub</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0D1017">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #F6F5F1;
+      color: #111113;
+      font-family: 'Geist', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: #111113; text-decoration: none; }
+    a:hover { color: #5E5E63; }
+    button { font: inherit; cursor: pointer; }
+
+    /* Views */
+    .view { display: none; width: 100%; min-height: 100vh; flex-direction: column; box-sizing: border-box; }
+    .view.active { display: flex; }
+
+    /* View 1: Main Landing / Upload (Main.dc.html) */
+    #view-main header, #view-pair header {
+      max-width: 1080px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-logo {
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: -0.03em;
+    }
+    .brand-logo span { color: #FF2D55; }
+    .nav-links { display: flex; gap: 24px; font-size: 14px; }
+
+    .main-content {
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 48px 24px 72px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .hero-title {
+      font-weight: 600;
+      font-size: 48px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+    .hero-title span { color: #3B5BFF; }
+    .hero-desc {
+      font-size: 17px;
+      line-height: 1.55;
+      color: #5E5E63;
+    }
+
+    .dropzone {
+      position: relative;
+      border: 1.5px dashed #AEBBFF;
+      border-radius: 18px;
+      background: #EEF1FF;
+      padding: 44px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .dropzone.dragover {
+      background: #E0E7FF;
+      border-color: #3B5BFF;
+    }
+    .dropzone-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 22px;
+      border-radius: 10px;
+      background: #3B5BFF;
+      color: #FFFFFF;
+      font-weight: 500;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .dropzone-label:hover { background: #2F4AE0; }
+    .dropzone input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+    }
+
+    .embed-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 20px;
+      border-top: 1px solid #E7E7E9;
+    }
+    .embed-input-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .embed-input {
+      flex: 1 1 300px;
+      height: 44px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid #DCDCDF;
+      background: #FFFFFF;
+      font-size: 15px;
+      outline: none;
+    }
+    .embed-input:focus { border-color: #3B5BFF; }
+    .btn-secondary {
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 10px;
+      border: 1px solid #DCDCDF;
+      background: #FFFFFF;
+      color: #111113;
+      font-weight: 500;
+      font-size: 15px;
+    }
+
+    .steps-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding-top: 24px;
+      border-top: 1px solid #E7E7E9;
+    }
+    .step-item {
+      flex: 1 1 160px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .step-num {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      color: #3B5BFF;
+    }
+    .step-title { font-weight: 500; font-size: 15px; }
+    .step-desc { font-size: 14px; line-height: 1.45; color: #5E5E63; }
+
+    /* View 2: Pairing Screen (Web-Pair.dc.html) */
+    .pair-main {
+      max-width: 920px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 60px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 52px;
+      align-items: center;
+    }
+    .qr-card-wrap {
+      flex: none;
+      background: #FFFFFF;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 0 0 12px #E3E8FF;
+    }
+    #pair-qrcode {
+      width: 250px;
+      height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pair-details {
+      flex: 1 1 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .pair-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .pair-status.waiting { color: #8A6100; }
+    .pair-status.connected { color: #17803F; }
+    .status-dot-inner {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .pair-status.waiting .status-dot-inner { background: #E5A100; }
+    .pair-status.connected .status-dot-inner { background: #1F9D55; }
+
+    .pair-title {
+      font-weight: 600;
+      font-size: 38px;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+    }
+    .pair-domain-hint {
+      font-size: 15px;
+      line-height: 1.5;
+      color: #5E5E63;
+    }
+    .pair-code-badge {
+      font-family: 'Geist Mono', monospace;
+      font-weight: 600;
+      color: #111113;
+      letter-spacing: 0.06em;
+      background: #E8E8EC;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .pair-file-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 16px 0;
+      border-top: 1px solid #E7E7E9;
+      border-bottom: 1px solid #E7E7E9;
+      font-size: 14px;
+      color: #5E5E63;
+    }
+    .btn-start-present {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 24px;
+      border-radius: 10px;
+      background: #3B5BFF;
+      color: #FFFFFF;
+      font-weight: 500;
+      font-size: 15px;
+      border: none;
+    }
+    .btn-start-present:hover { background: #2F4AE0; }
+
+    /* View 3: Presentation Stage (Web-Present.dc.html) */
+    #view-present {
+      background: #000000;
+      color: #EDEDED;
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    .stage-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #stage-canvas-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas#pdf-canvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    iframe#embed-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Built-in Sample Slide Stage */
+    #slide-builtin {
+      width: 90%;
+      max-width: 1100px;
+      aspect-ratio: 16 / 9;
+      background: #14161B;
+      color: #F2F2F2;
+      border-radius: 16px;
+      border: 1px solid #232836;
+      box-sizing: border-box;
+      padding: 6% 7%;
+      display: flex;
+      flex-direction: column;
+      gap: 4%;
+      justify-content: center;
+    }
+    .builtin-kicker {
+      font-family: 'Geist Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      color: #3B5BFF;
+    }
+    .builtin-heading {
+      font-weight: 600;
+      font-size: 46px;
+      line-height: 1.1;
+      letter-spacing: -0.035em;
+    }
+    .builtin-desc {
+      font-size: 20px;
+      line-height: 1.6;
+      color: #94A3B8;
+      max-width: 720px;
+    }
+
+    /* PPTX Stage */
+    #pptx-stage {
+      display: none;
+      width: 90%;
+      max-width: 1100px;
+      aspect-ratio: 16 / 9;
+      background: #14161B;
+      border-radius: 16px;
+      border: 1px solid #232836;
+      box-sizing: border-box;
+      padding: 6% 7%;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+    .pptx-slide-title {
+      font-weight: 600;
+      font-size: 40px;
+      line-height: 1.15;
+      color: #F8FAFC;
+    }
+    .pptx-slide-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 19px;
+      color: #94A3B8;
+      line-height: 1.6;
+    }
+
+    /* Laser Pointer Dot */
+    #laser-pointer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border-radius: 50%;
+      background: #FF2D55;
+      box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 5px rgba(0,0,0,0.6), 0 0 24px 8px rgba(255,45,85,0.4);
+      pointer-events: none;
+      display: none;
+      z-index: 100;
+      will-change: transform;
+      /* Smooths uneven WiFi packet arrival; GPU-only property. */
+      transition: transform 0.05s linear;
+    }
+
+    /* Blackout Screen */
+    #blackout-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000000;
+      display: none;
+      z-index: 90;
+    }
+    #blackout-overlay.active { display: block; }
+
+    /* HUD elements */
+    #hud-pill {
+      position: absolute;
+      left: 24px;
+      bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      background: rgba(20,20,22,0.75);
+      backdrop-filter: blur(8px);
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      color: #A1A1A6;
+      z-index: 80;
+      transition: opacity 0.3s;
+    }
+    .hud-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #30D158;
+    }
+    #hud-pill.fade { opacity: 0; pointer-events: none; }
+
+    #toast-reconnect {
+      position: absolute;
+      right: 24px;
+      top: 20px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: rgba(20,20,22,0.85);
+      backdrop-filter: blur(8px);
+      font-size: 13px;
+      color: #C4C4C8;
+      z-index: 80;
+    }
+
+    /* Floating exit / QR shortcut on stage */
+    .stage-tools {
+      position: absolute;
+      right: 24px;
+      bottom: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 80;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #view-present:hover .stage-tools { opacity: 1; }
+    .btn-stage-tool {
+      background: rgba(20,20,22,0.85);
+      border: 1px solid #232836;
+      color: #EDEDED;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- VIEW 1: Main Upload & Landing (Main.dc.html) -->
+  <div class="view active" id="view-main">
+    <header>
+      <span class="brand-logo">nongle<span>.</span></span>
+      <nav class="nav-links">
+        <a href="#cara-kerja">Cara kerja</a>
+        <a href="#privasi">Privasi</a>
+      </nav>
+    </header>
+
+    <main class="main-content">
+      <div>
+        <h1 class="hero-title">Slide di laptop.<br><span>Remote di saku.</span></h1>
+        <p class="hero-desc">Buka PDF di browser laptop, scan QR pakai kamera HP, selesai. Tanpa aplikasi, driver, atau akun.</p>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <div style="font-weight: 500; font-size: 17px;">Tarik PDF atau PPTX ke sini</div>
+        <label class="dropzone-label">
+          Pilih file
+          <input type="file" id="file-input" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+        </label>
+        <div style="font-size: 13px; color: #6B6B70;">Export dulu dari PowerPoint, Keynote, atau Canva ke PDF</div>
+      </div>
+
+      <div style="display: flex; justify-content: center;">
+        <button type="button" id="btn-use-demo" class="btn-secondary" style="font-size: 14px;">Gunakan slide contoh</button>
+      </div>
+
+      <div id="privasi" style="display: flex; gap: 10px; align-items: center; font-size: 14px; color: #5E5E63;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+        Slide dirender di browser ini dan tidak diupload ke server.
+      </div>
+
+      <div class="embed-row">
+        <label for="link-embed" style="font-size: 14px; font-weight: 500;">Atau tempel link Google Slides <span style="font-weight: 400; color: #6B6B70;">· eksperimental</span></label>
+        <div class="embed-input-group">
+          <input type="url" id="link-embed" class="embed-input" placeholder="https://docs.google.com/presentation/…">
+          <button type="button" id="btn-load-embed" class="btn-secondary">Pakai link</button>
+        </div>
+      </div>
+
+      <div id="cara-kerja" class="steps-row">
+        <div class="step-item">
+          <div class="step-num">01</div>
+          <div class="step-title">Buka PDF</div>
+          <div class="step-desc">Di browser laptop venue.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">02</div>
+          <div class="step-title">Scan QR</div>
+          <div class="step-desc">Sebelum layar masuk proyektor.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">03</div>
+          <div class="step-title">Presentasi</div>
+          <div class="step-desc">Next, laser, layar hitam, timer.</div>
+        </div>
+      </div>
+
+      <div style="font-size: 13px; color: #6B6B70;">
+        Shortcut keyboard: <kbd style="font-family: 'Geist Mono', monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid #DCDCDF; background: #FFFFFF; color: #111113;">← →</kbd> slide · <kbd style="font-family: 'Geist Mono', monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid #DCDCDF; background: #FFFFFF; color: #111113;">B</kbd> layar hitam · <kbd style="font-family: 'Geist Mono', monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid #DCDCDF; background: #FFFFFF; color: #111113;">F</kbd> fullscreen
+      </div>
+    </main>
+  </div>
+
+  <!-- VIEW 2: Pairing QR Screen (Web-Pair.dc.html) -->
+  <div class="view" id="view-pair">
+    <header>
+      <span class="brand-logo">nongle<span>.</span></span>
+      <button type="button" id="btn-change-file" class="btn-secondary" style="border: none; background: transparent; padding: 0; font-size: 14px;">Ganti file</button>
+    </header>
+
+    <main class="pair-main">
+      <div class="qr-card-wrap">
+        <div id="pair-qrcode"></div>
+      </div>
+
+      <div class="pair-details">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="pair-status waiting" id="pair-status-pill">
+            <span class="status-dot-inner"></span>
+            <span id="pair-status-text">Menunggu HP…</span>
+          </div>
+          <h1 class="pair-title">Scan pakai kamera HP</h1>
+          <p class="pair-domain-hint">
+            QR tidak terbaca? Buka <span id="pair-domain-text" style="font-family: 'Geist Mono', monospace; color: #111113;">nongle.app</span> lalu ketik kode <span id="pair-code-text" class="pair-code-badge">------</span>
+          </p>
+        </div>
+
+        <div class="pair-file-meta">
+          <div id="pair-file-name" style="font-weight: 500; color: #111113;">Slide Demo · 3 slide</div>
+          <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.45; cursor: pointer;">
+            <input type="checkbox" id="check-lock" checked style="width: 17px; height: 17px; accent-color: #3B5BFF; margin-top: 1px;">
+            <span>Kunci ke HP pertama yang terhubung <span style="color: #6B6B70;">— jangan proyeksikan layar ini dulu, siapa pun yang scan bisa ikut kontrol.</span></span>
+          </label>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+          <button type="button" class="btn-start-present" id="btn-enter-present">Mulai presentasi</button>
+          <button type="button" id="btn-skip-to-present" style="background: none; border: none; font-size: 14px; color: #5E5E63;">atau pakai keyboard saja</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- VIEW 3: Presentation Stage (Web-Present.dc.html) -->
+  <div class="view" id="view-present">
+    <div class="stage-wrapper">
+      <div id="stage-canvas-container">
+        <canvas id="pdf-canvas" style="display: none;"></canvas>
+        <iframe id="embed-frame" style="display: none;"></iframe>
+        <div id="pptx-stage"></div>
+        <div id="slide-builtin">
+          <div class="builtin-kicker" id="b-kicker">[Slide 01]</div>
+          <div class="builtin-heading" id="b-title">Nongle: Zero-Dongle Presenter</div>
+          <div class="builtin-desc" id="b-desc">Kendalikan laptop langsung dari browser HP tanpa install aplikasi apapun.</div>
+        </div>
+      </div>
+
+      <div id="laser-pointer"></div>
+      <div id="blackout-overlay"></div>
+
+      <!-- Bottom-left HUD -->
+      <div id="hud-pill">
+        <span class="hud-dot"></span>
+        <span id="hud-slide">1 / 3</span>
+        <span id="hud-timer">00:00</span>
+      </div>
+
+      <!-- Disconnect toast -->
+      <div id="toast-reconnect">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: #FFD60A;"></span>
+        Menyambung ulang remote… keyboard tetap aktif
+      </div>
+
+      <!-- Stage floating tools -->
+      <div class="stage-tools">
+        <button type="button" class="btn-stage-tool" id="btn-reopen-pair">Pairing QR</button>
+        <button type="button" class="btn-stage-tool" id="btn-stage-fullscreen">Fullscreen (F)</button>
+        <button type="button" class="btn-stage-tool" id="btn-exit-present">Keluar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // State
+    let ws = null;
+    let roomId = null;
+    let currentSlide = 1;
+    let totalSlides = 3;
+    let currentFileName = 'Slide Demo';
+    let mode = 'builtin'; // 'builtin' | 'pdf' | 'pptx' | 'embed'
+    let pdfDoc = null;
+    let pptxSlides = [];
+    let isBlackout = false;
+    let remotesCount = 0;
+
+    let timerSec = 0;
+    let timerInterval = null;
+    let hudTimeout = null;
+
+    const builtinSlides = [
+      { kicker: '[Bagian 01]', title: 'Nongle: Zero-Dongle Remote', desc: 'Ubah HP jadi remote panggung seketika via browser tanpa instalasi software atau dongle USB.' },
+      { kicker: '[Bagian 02]', title: 'Kompatibel PDF & PPTX', desc: 'Buka presentasi lokal secara privat di browser laptop. Slide tidak pernah dikirim ke cloud.' },
+      { kicker: '[Bagian 03]', title: 'Laser & Gestur Canggih', desc: 'Kontrol laser pointer dari HP via touchpad atau sensor kemiringan tangan (Gyro Air Pointer).' }
+    ];
+
+    const views = {
+      main: document.getElementById('view-main'),
+      pair: document.getElementById('view-pair'),
+      present: document.getElementById('view-present')
+    };
+
+    function showView(name) {
+      Object.keys(views).forEach(k => views[k].classList.toggle('active', k === name));
+      if (name === 'present') {
+        renderSlide();
+        startStageTimer();
+        pingHud();
+      }
+    }
+
+    // WebSocket init
+    function initWS() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}`);
+
+      ws.onopen = () => {
+        document.getElementById('toast-reconnect').style.display = 'none';
+        ws.send(JSON.stringify({ type: 'CREATE_ROOM' }));
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'ROOM_CREATED') {
+            roomId = msg.roomId;
+            document.getElementById('pair-code-text').textContent = roomId;
+            generateQR();
+            syncState();
+          } else if (msg.type === 'REMOTE_CONNECTED') {
+            remotesCount = msg.count;
+            const pill = document.getElementById('pair-status-pill');
+            pill.className = 'pair-status connected';
+            document.getElementById('pair-status-text').textContent = 'HP terhubung';
+
+            if (document.getElementById('check-lock').checked && views.pair.classList.contains('active')) {
+              showView('present');
+            }
+          } else if (msg.type === 'REMOTE_DISCONNECTED') {
+            remotesCount = msg.count;
+            if (remotesCount === 0) {
+              const pill = document.getElementById('pair-status-pill');
+              pill.className = 'pair-status waiting';
+              document.getElementById('pair-status-text').textContent = 'Menunggu HP…';
+            }
+          } else if (msg.type === 'NAVIGATE') {
+            if (msg.action === 'NEXT') nextSlide();
+            if (msg.action === 'PREV') prevSlide();
+          } else if (msg.type === 'SET_BLACKOUT') {
+            setBlackout(msg.state);
+          } else if (msg.type === 'BLACKOUT_UPDATED') {
+            setBlackout(msg.isBlackout);
+          } else if (msg.type === 'POINTER_MOVE') {
+            handlePointer(msg);
+          }
+        } catch (_) {}
+      };
+
+      ws.onclose = () => {
+        document.getElementById('toast-reconnect').style.display = 'flex';
+        setTimeout(initWS, 2000);
+      };
+    }
+
+    async function generateQR() {
+      let host = location.host;
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        try {
+          const res = await fetch('/api/info');
+          const data = await res.json();
+          if (data.ip && data.ip !== 'localhost') {
+            host = `${data.ip}:${data.port || location.port || 3000}`;
+          }
+        } catch (_) {}
+      }
+      const remoteUrl = `${location.protocol}//${host}/remote.html?room=${roomId}`;
+      document.getElementById('pair-domain-text').textContent = `${location.host}/remote.html`;
+
+      const qrContainer = document.getElementById('pair-qrcode');
+      qrContainer.innerHTML = '';
+      new QRCode(qrContainer, {
+        text: remoteUrl,
+        width: 250,
+        height: 250,
+        colorDark: "#111113",
+        colorLight: "#FFFFFF",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    function syncState() {
+      if (ws && ws.readyState === WebSocket.OPEN && roomId) {
+        ws.send(JSON.stringify({
+          type: 'UPDATE_STATE',
+          currentSlide,
+          totalSlides
+        }));
+      }
+    }
+
+    function renderSlide() {
+      document.getElementById('hud-slide').textContent = `${currentSlide} / ${totalSlides}`;
+
+      if (mode === 'builtin') {
+        const item = builtinSlides[currentSlide - 1];
+        document.getElementById('b-kicker').textContent = item.kicker;
+        document.getElementById('b-title').textContent = item.title;
+        document.getElementById('b-desc').textContent = item.desc;
+      } else if (mode === 'pdf' && pdfDoc) {
+        pdfDoc.getPage(currentSlide).then(page => {
+          const canvas = document.getElementById('pdf-canvas');
+          const ctx = canvas.getContext('2d');
+          const viewport = page.getViewport({ scale: 2 });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          page.render({ canvasContext: ctx, viewport });
+        });
+      } else if (mode === 'pptx' && pptxSlides.length > 0) {
+        const item = pptxSlides[currentSlide - 1];
+        const container = document.getElementById('pptx-stage');
+        let bodyHtml = '';
+        if (item.body && item.body.length > 0) {
+          bodyHtml = item.body.map(t => `<div>• ${escapeHtml(t)}</div>`).join('');
+        }
+        container.innerHTML = `
+          <div class="pptx-slide-title">${escapeHtml(item.title)}</div>
+          <div class="pptx-slide-body">${bodyHtml}</div>
+        `;
+      }
+
+      syncState();
+      pingHud();
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        renderSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        renderSlide();
+      }
+    }
+
+    function setBlackout(active) {
+      isBlackout = Boolean(active);
+      document.getElementById('blackout-overlay').classList.toggle('active', isBlackout);
+    }
+
+    const laserEl = document.getElementById('laser-pointer');
+    let laserShown = false, laserColorNow = '';
+    function handlePointer(msg) {
+      if (msg.visible) {
+        const color = msg.color || '#FF2D55';
+        if (color !== laserColorNow) {
+          laserColorNow = color;
+          laserEl.style.background = color;
+          laserEl.style.boxShadow = `0 0 0 3px #FFFFFF, 0 0 0 5px rgba(0,0,0,0.6), 0 0 24px 8px ${color}`;
+        }
+        // transform: GPU composite only, no layout per move.
+        const p = laserEl.parentElement;
+        laserEl.style.transform = `translate(${msg.x * p.clientWidth / 100}px, ${msg.y * p.clientHeight / 100}px)`;
+        if (!laserShown) { laserShown = true; laserEl.style.display = 'block'; }
+      } else if (laserShown) {
+        laserShown = false;
+        laserEl.style.display = 'none';
+      }
+    }
+
+    function startStageTimer() {
+      if (timerInterval) return;
+      timerInterval = setInterval(() => {
+        timerSec++;
+        const m = String(Math.floor(timerSec / 60)).padStart(2, '0');
+        const s = String(timerSec % 60).padStart(2, '0');
+        document.getElementById('hud-timer').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    function pingHud() {
+      const hud = document.getElementById('hud-pill');
+      hud.classList.remove('fade');
+      clearTimeout(hudTimeout);
+      hudTimeout = setTimeout(() => {
+        hud.classList.add('fade');
+      }, 3500);
+    }
+    window.addEventListener('mousemove', pingHud);
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+      if (e.key === 'b' || e.key === 'B') {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'SET_BLACKOUT', state: !isBlackout }));
+        }
+      }
+      if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+      if (e.key === 'Escape' && views.present.classList.contains('active')) {
+        showView('pair');
+      }
+    });
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // View Transitions & File Loading
+    function updateFileMeta(name, count) {
+      currentFileName = name;
+      totalSlides = count;
+      currentSlide = 1;
+      document.getElementById('pair-file-name').textContent = `${name} · ${count} slide`;
+    }
+
+    document.getElementById('btn-use-demo').onclick = () => {
+      mode = 'builtin';
+      updateFileMeta('Slide Demo', 3);
+      document.getElementById('slide-builtin').style.display = 'flex';
+      document.getElementById('pdf-canvas').style.display = 'none';
+      document.getElementById('pptx-stage').style.display = 'none';
+      document.getElementById('embed-frame').style.display = 'none';
+      showView('pair');
+    };
+
+    document.getElementById('btn-change-file').onclick = () => showView('main');
+    document.getElementById('btn-enter-present').onclick = () => showView('present');
+    document.getElementById('btn-skip-to-present').onclick = () => showView('present');
+    document.getElementById('btn-exit-present').onclick = () => showView('pair');
+    document.getElementById('btn-reopen-pair').onclick = () => showView('pair');
+    document.getElementById('btn-stage-fullscreen').onclick = toggleFullscreen;
+
+    // File Input (PDF / PPTX)
+    document.getElementById('file-input').onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) handleFile(file);
+    };
+
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    async function handleFile(file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.pptx')) {
+        await loadPptx(file);
+      } else {
+        await loadPdf(file);
+      }
+      showView('pair');
+    }
+
+    function loadPdf(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async function() {
+          const typedarray = new Uint8Array(this.result);
+          pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
+          mode = 'pdf';
+          updateFileMeta(file.name, pdfDoc.numPages);
+          document.getElementById('slide-builtin').style.display = 'none';
+          document.getElementById('embed-frame').style.display = 'none';
+          document.getElementById('pptx-stage').style.display = 'none';
+          document.getElementById('pdf-canvas').style.display = 'block';
+          resolve();
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    async function loadPptx(file) {
+      try {
+        const zip = await JSZip.loadAsync(file);
+        const slideFiles = Object.keys(zip.files).filter(f => /^ppt\/slides\/slide\d+\.xml$/.test(f));
+        slideFiles.sort((a, b) => {
+          const numA = parseInt(a.match(/slide(\d+)\.xml/)[1], 10);
+          const numB = parseInt(b.match(/slide(\d+)\.xml/)[1], 10);
+          return numA - numB;
+        });
+
+        if (slideFiles.length === 0) {
+          alert('Tidak ditemukan slide di dalam file PPTX.');
+          return;
+        }
+
+        pptxSlides = [];
+        const parser = new DOMParser();
+        for (const sPath of slideFiles) {
+          const xmlText = await zip.file(sPath).async('text');
+          const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+          const paragraphs = [];
+          const pNodes = xmlDoc.getElementsByTagName('a:p');
+          for (let i = 0; i < pNodes.length; i++) {
+            const tNodes = pNodes[i].getElementsByTagName('a:t');
+            let line = '';
+            for (let j = 0; j < tNodes.length; j++) line += tNodes[j].textContent;
+            if (line.trim()) paragraphs.push(line.trim());
+          }
+          pptxSlides.push({
+            title: paragraphs[0] || `Slide ${pptxSlides.length + 1}`,
+            body: paragraphs.slice(1)
+          });
+        }
+
+        mode = 'pptx';
+        updateFileMeta(file.name, pptxSlides.length);
+        document.getElementById('slide-builtin').style.display = 'none';
+        document.getElementById('embed-frame').style.display = 'none';
+        document.getElementById('pdf-canvas').style.display = 'none';
+        document.getElementById('pptx-stage').style.display = 'flex';
+      } catch (err) {
+        console.error(err);
+        alert('Gagal membaca file PPTX.');
+      }
+    }
+
+    document.getElementById('btn-load-embed').onclick = () => {
+      const url = document.getElementById('link-embed').value.trim();
+      if (!url) return;
+      mode = 'embed';
+      updateFileMeta('Google Slides Embed', 10);
+      document.getElementById('slide-builtin').style.display = 'none';
+      document.getElementById('pdf-canvas').style.display = 'none';
+      document.getElementById('pptx-stage').style.display = 'none';
+      const frame = document.getElementById('embed-frame');
+      frame.src = url;
+      frame.style.display = 'block';
+      showView('pair');
+    };
+
+    initWS();
+  </script>
+</body>
+</html>

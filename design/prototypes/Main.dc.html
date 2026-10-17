@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Nongle — Upload slide</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0;background:#F6F5F1}
+a{color:#111113}a:hover{color:#5E5E63}
+</style>
+</helmet>
+<div style="min-height: 880px; background: #F6F5F1; color: #111113; font-family: 'Geist', system-ui, sans-serif; box-sizing: border-box">
+  <header style="max-width: 1080px; margin: 0 auto; padding: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+    <span style="font-weight: 600; font-size: 21px; letter-spacing: -0.03em">nongle<span style="color: #FF2D55">.</span></span>
+    <nav style="display: flex; gap: 24px; font-size: 14px">
+      <a href="#cara-kerja" style="text-decoration: none">Cara kerja</a>
+      <a href="#privasi" style="text-decoration: none">Privasi</a>
+    </nav>
+  </header>
+
+  <main style="max-width: 640px; margin: 0 auto; padding: 64px 24px 72px; display: flex; flex-direction: column; gap: 28px; box-sizing: border-box">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <h1 style="margin: 0; font-weight: 600; font-size: 52px; line-height: 1.04; letter-spacing: -0.045em">Slide di laptop.<br><span style="color: #3B5BFF">Remote di saku.</span></h1>
+      <p style="margin: 0; font-size: 17px; line-height: 1.55; color: #5E5E63">Buka PDF di browser laptop, scan QR pakai kamera HP, selesai. Tanpa aplikasi, driver, atau akun.</p>
+    </div>
+
+    <div style="position: relative; border: 1.5px dashed #AEBBFF; border-radius: 16px; background: #EEF1FF; padding: 48px 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+      <div style="font-weight: 500; font-size: 17px">Tarik PDF ke sini</div>
+      <label for="deck" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; border-radius: 10px; background: #3B5BFF; color: #FFFFFF; font-weight: 500; font-size: 15px; cursor: pointer">Pilih file</label>
+      <input id="deck" type="file" accept="application/pdf" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden">
+      <div style="font-size: 13px; color: #6B6B70">Export dulu dari PowerPoint, Keynote, atau Canva ke PDF</div>
+    </div>
+
+    <div id="privasi" style="display: flex; gap: 10px; align-items: center; font-size: 14px; color: #5E5E63">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+      Slide dirender di browser ini dan tidak diupload ke server.
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 24px; border-top: 1px solid #E7E7E9">
+      <label for="link" style="font-size: 14px; font-weight: 500">Atau tempel link Google Slides <span style="font-weight: 400; color: #6B6B70">· eksperimental, hanya next/prev</span></label>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <input id="link" type="url" placeholder="https://docs.google.com/presentation/…" style="flex: 1 1 300px; min-width: 0; height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #DCDCDF; background: #FFFFFF; color: #111113; font: inherit; font-size: 15px">
+        <button type="button" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #DCDCDF; background: #FFFFFF; color: #111113; font: inherit; font-weight: 500; font-size: 15px; cursor: pointer">Pakai link</button>
+      </div>
+    </div>
+
+    <div id="cara-kerja" style="display: flex; flex-wrap: wrap; gap: 24px; padding-top: 24px; border-top: 1px solid #E7E7E9">
+      <div style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #3B5BFF">01</div>
+        <div style="font-weight: 500; font-size: 15px">Buka PDF</div>
+        <div style="font-size: 14px; line-height: 1.45; color: #5E5E63">Di browser laptop venue.</div>
+      </div>
+      <div style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #3B5BFF">02</div>
+        <div style="font-weight: 500; font-size: 15px">Scan QR</div>
+        <div style="font-size: 14px; line-height: 1.45; color: #5E5E63">Sebelum layar masuk proyektor.</div>
+      </div>
+      <div style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #3B5BFF">03</div>
+        <div style="font-weight: 500; font-size: 15px">Presentasi</div>
+        <div style="font-size: 14px; line-height: 1.45; color: #5E5E63">Next, laser, layar hitam, timer.</div>
+      </div>
+    </div>
+
+    <div style="font-size: 13px; color: #6B6B70">Tanpa HP: <kbd style="font-family: 'Geist Mono', monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid #DCDCDF; background: #FFFFFF; color: #111113">← →</kbd> pindah slide · <kbd style="font-family: 'Geist Mono', monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid #DCDCDF; background: #FFFFFF; color: #111113">B</kbd> layar hitam · <kbd style="font-family: 'Geist Mono', monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid #DCDCDF; background: #FFFFFF; color: #111113">F</kbd> layar penuh</div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

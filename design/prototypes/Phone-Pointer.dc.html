@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Nongle HP — Laser pointer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0;background:#0D1017}
+a{color:#EDEDED}a:hover{color:#FFFFFF}
+.pad{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;touch-action:none}
+.pulse{position:absolute;inset:0;border-radius:50%;border:2px solid currentColor;animation:pulse 1.4s ease-out infinite;pointer-events:none}
+.pulse.d2{animation-delay:.7s}
+@keyframes pulse{from{transform:scale(1);opacity:.75}to{transform:scale(1.55);opacity:0}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0D1017; color: #EDEDED; font-family: 'Geist', system-ui, sans-serif; box-sizing: border-box; padding: 56px 16px 20px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 10px; min-height: 44px">
+    <a href="Phone-OneHand.dc.html" aria-label="Kembali ke remote" style="width: 44px; height: 44px; border-radius: 12px; background: #171B24; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg>
+    </a>
+    <div style="flex: 1; font-weight: 600; font-size: 20px; letter-spacing: -0.02em">Laser</div>
+    <span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #8C93A3">12 / 24</span>
+  </div>
+
+  <div role="group" aria-label="Mode laser" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #171B24">
+    <button type="button" aria-pressed="{{touchAria}}" onClick="{{setTouch}}" style="min-height: 40px; border-radius: 9px; border: none; background: {{touchBg}}; color: {{touchFg}}; font: inherit; font-weight: 500; font-size: 15px; cursor: pointer">Touchpad</button>
+    <button type="button" aria-pressed="{{airAria}}" onClick="{{setAir}}" style="min-height: 40px; border-radius: 9px; border: none; background: {{airBg}}; color: {{airFg}}; font: inherit; font-weight: 500; font-size: 15px; cursor: pointer">Air (gyro)</button>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 14px">
+    <div role="img" aria-label="Posisi laser di layar proyektor" style="position: relative; flex: none; width: 112px; height: 63px; border-radius: 8px; background: #1E2330; overflow: hidden">
+      <span aria-hidden="true" style="position: absolute; left: {{lxp}}; top: {{lyp}}; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: {{color}}; box-shadow: 0 0 0 1.5px #FFFFFF; opacity: {{dotOp}}"></span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+      <div style="font-size: 13px; color: #8C93A3">Warna laser</div>
+      <div role="group" aria-label="Warna laser" style="display: flex; gap: 2px; margin-left: -8px">
+        <sc-for list="{{swatches}}" as="s" hint-placeholder-count="3">
+          <button type="button" aria-label="{{s.label}}" aria-pressed="{{s.aria}}" onClick="{{s.pick}}" style="width: 44px; height: 44px; border: none; padding: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer">
+            <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; background: {{s.c}}; box-shadow: {{s.ring}}"></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{isTouch}}" hint-placeholder-val="{{ true }}">
+    <div class="pad" role="group" aria-label="Touchpad laser, tekan dan geser" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerCancel="{{up}}" style="position: relative; flex: 1; border-radius: 24px; background: #12161F; overflow: hidden; cursor: crosshair">
+      <canvas ref="{{setCanvas}}" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block"></canvas>
+      <sc-if value="{{idle}}" hint-placeholder-val="{{ true }}">
+        <div style="position: absolute; left: 0; right: 0; bottom: 22px; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none">
+          <div style="font-size: 15px; font-weight: 500; color: #C5CAD5">Tekan &amp; geser</div>
+          <div style="font-size: 13px; color: #8C93A3">Laser nyala selama jari menempel</div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isAir}}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; border-radius: 24px; background: #161B27; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 20px">
+      <div style="font-size: 14px; line-height: 1.5; color: #8C93A3; text-align: center; max-width: 250px">Arahkan HP ke layar, lalu tahan. Laser mengikuti gerak tangan.</div>
+      <div style="position: relative; width: 168px; height: 168px; color: {{color}}">
+        <sc-if value="{{airOn}}" hint-placeholder-val="{{ false }}">
+          <span class="pulse"></span>
+          <span class="pulse d2"></span>
+        </sc-if>
+        <button type="button" onPointerDown="{{airDown}}" onPointerUp="{{airUp}}" onPointerLeave="{{airUp}}" onPointerCancel="{{airUp}}" style="position: absolute; inset: 0; border-radius: 50%; border: none; background: {{airBtnBg}}; color: #0D1017; font: inherit; font-weight: 600; font-size: 17px; cursor: pointer; touch-action: none">{{holdLabel}}</button>
+      </div>
+      <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: none; background: #1E2330; color: #EDEDED; font: inherit; font-weight: 500; font-size: 14px; cursor: pointer">Kalibrasi ke tengah layar</button>
+    </div>
+  </sc-if>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+    <button type="button" aria-label="Slide sebelumnya" style="min-height: 64px; border-radius: 18px; border: none; background: #1E2330; color: #EDEDED; font: inherit; font-weight: 500; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg>
+      Prev
+    </button>
+    <button type="button" aria-label="Slide berikutnya" style="min-height: 64px; border-radius: 18px; border: none; background: #3B5BFF; color: #FFFFFF; font: inherit; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer">
+      Next
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: 'touch', pressing: false, airOn: false, lx: 0.55, ly: 0.45, color: '#FF2D55' };
+    this.g = { amp: 0, vel: 0, target: 0, cx: 0, cy: 0, tx: 0, ty: 0, waves: [], last: 0 };
+    this._raf = null; this._dead = false; this._cv = null;
+    this.down = this.down.bind(this);
+    this.move = this.move.bind(this);
+    this.up = this.up.bind(this);
+    this.frame = this.frame.bind(this);
+    this.setCanvas = this.setCanvas.bind(this);
+  }
+  componentDidMount() { this.kick(); }
+  componentWillUnmount() { this._dead = true; if (this._raf) cancelAnimationFrame(this._raf); }
+  setCanvas(el) { this._cv = el; if (el) { this.g.cx = this.g.tx = (el.offsetWidth || 358) / 2; this.g.cy = this.g.ty = (el.offsetHeight || 400) / 2; this.kick(); } }
+  kick() { if (this._raf || this._dead) return; this._raf = requestAnimationFrame(this.frame); }
+  rgb(hex) { var n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  frame(now) {
+    this._raf = null;
+    var cv = this._cv; if (!cv) return;
+    var g = this.g;
+    var dt = g.last ? Math.min(0.05, (now - g.last) / 1000) : 0.016; g.last = now;
+    var acc = 230 * (g.target - g.amp) - 13 * g.vel;
+    g.vel += acc * dt; g.amp += g.vel * dt;
+    var k = Math.min(1, dt * 22);
+    g.cx += (g.tx - g.cx) * k; g.cy += (g.ty - g.cy) * k;
+    g.waves = g.waves.filter(function (w) { return now - w.t < 1100; });
+
+    var w = cv.offsetWidth, h = cv.offsetHeight, dpr = window.devicePixelRatio || 1;
+    if (!w || !h) return;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var amp = Math.max(-0.4, g.amp), cx = g.cx, cy = g.cy, waves = g.waves;
+    var base = [120, 132, 158], lc = this.rgb(this.state.color);
+    var S = 22, sig = 66, cols = Math.ceil(w / S) + 2, rows = Math.ceil(h / S) + 2;
+    var ox = (w - (cols - 1) * S) / 2, oy = (h - (rows - 1) * S) / 2;
+    var P = [], L = [];
+    for (var j = 0; j < rows; j++) {
+      for (var i = 0; i < cols; i++) {
+        var x = ox + i * S, y = oy + j * S;
+        var dx = x - cx, dy = y - cy, d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+        var q = d / sig;
+        var push = amp * 20 * q * Math.exp(0.5 - q * q / 2);
+        var lift = Math.max(0, amp) * Math.exp(-(d * d) / (2 * (sig * 1.25) * (sig * 1.25)));
+        var px = x + dx / d * push, py = y + dy / d * push;
+        for (var n = 0; n < waves.length; n++) {
+          var wv = waves[n], age = (now - wv.t) / 1000;
+          var wx = x - wv.x, wy = y - wv.y, wd = Math.sqrt(wx * wx + wy * wy) || 0.001;
+          var r = 300 * age, band = wd - r;
+          var fade = Math.pow(1 - age / 1.1, 2);
+          var s = 7 * wv.a * fade * Math.exp(-(band * band) / (2 * 15 * 15));
+          px += wx / wd * s; py += wy / wd * s;
+          lift += 0.35 * s / 7;
+        }
+        P.push(px, py); L.push(Math.min(1, lift));
+      }
+    }
+    if (amp > 0.02) {
+      var gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, 110);
+      gr.addColorStop(0, 'rgba(' + lc[0] + ',' + lc[1] + ',' + lc[2] + ',' + (0.14 * Math.min(1, amp)) + ')');
+      gr.addColorStop(1, 'rgba(' + lc[0] + ',' + lc[1] + ',' + lc[2] + ',0)');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    }
+    var self = this;
+    function seg(a, b) {
+      var t = (L[a] + L[b]) / 2;
+      var cr = Math.round(base[0] + (lc[0] - base[0]) * t * 0.9);
+      var cg = Math.round(base[1] + (lc[1] - base[1]) * t * 0.9);
+      var cb = Math.round(base[2] + (lc[2] - base[2]) * t * 0.9);
+      ctx.strokeStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',' + (0.16 + 0.6 * t) + ')';
+      ctx.lineWidth = 1 + 0.8 * t;
+      ctx.beginPath(); ctx.moveTo(P[a * 2], P[a * 2 + 1]); ctx.lineTo(P[b * 2], P[b * 2 + 1]); ctx.stroke();
+    }
+    for (var jj = 0; jj < rows; jj++) {
+      for (var ii = 0; ii < cols; ii++) {
+        var id = jj * cols + ii;
+        if (ii < cols - 1) seg(id, id + 1);
+        if (jj < rows - 1) seg(id, id + cols);
+      }
+    }
+    if (g.target > 0 || amp > 0.15) {
+      var a2 = Math.min(1, Math.max(0, amp));
+      ctx.globalAlpha = a2;
+      ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, 8.5, 0, Math.PI * 2); ctx.fillStyle = '#FFFFFF'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fillStyle = self.state.color; ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    var active = g.target > 0 || Math.abs(g.amp) > 0.002 || Math.abs(g.vel) > 0.002 || waves.length > 0;
+    if (active) this._raf = requestAnimationFrame(this.frame);
+    else { g.amp = 0; g.vel = 0; g.last = 0; }
+  }
+  pt(e) {
+    var el = e.currentTarget, r = el.getBoundingClientRect();
+    var s = el.offsetWidth ? r.width / el.offsetWidth : 1;
+    return { x: (e.clientX - r.left) / s, y: (e.clientY - r.top) / s };
+  }
+  wave(p, a) {
+    this.g.waves.push({ x: p.x, y: p.y, t: performance.now(), a: a });
+    if (this.g.waves.length > 8) this.g.waves.shift();
+  }
+  down(e) {
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    var p = this.pt(e), g = this.g;
+    if (Math.abs(g.amp) < 0.05) { g.cx = p.x; g.cy = p.y; }
+    g.tx = p.x; g.ty = p.y; g.target = 1;
+    this._last = p; this._wp = p; this._wt = performance.now();
+    this.wave(p, 1);
+    try { if (navigator.vibrate) navigator.vibrate(8); } catch (err) {}
+    this.setState({ pressing: true });
+    this.kick();
+  }
+  move(e) {
+    if (!this.state.pressing || !this._last) return;
+    var p = this.pt(e), l = this._last, g = this.g;
+    g.tx = p.x; g.ty = p.y;
+    var wpx = p.x - this._wp.x, wpy = p.y - this._wp.y, now = performance.now();
+    if (Math.sqrt(wpx * wpx + wpy * wpy) > 22 && now - this._wt > 70) { this.wave(p, 0.6); this._wp = p; this._wt = now; }
+    var w = e.currentTarget.offsetWidth || 358;
+    var lx = Math.min(1, Math.max(0, this.state.lx + (p.x - l.x) / w * 1.1));
+    var ly = Math.min(1, Math.max(0, this.state.ly + (p.y - l.y) / w * 1.9));
+    this._last = p;
+    this.setState({ lx: lx, ly: ly });
+    this.kick();
+  }
+  up() {
+    if (!this.state.pressing) return;
+    var l = this._last;
+    this._last = null;
+    this.g.target = 0;
+    if (l) this.wave(l, 0.5);
+    this.setState({ pressing: false });
+    this.kick();
+  }
+  renderVals() {
+    var s = this.state, touch = s.mode === 'touch';
+    var colors = [{ c: '#FF2D55', n: 'merah' }, { c: '#FFD60A', n: 'kuning' }, { c: '#30D158', n: 'hijau' }];
+    var lit = touch ? s.pressing : s.airOn;
+    return {
+      isTouch: touch,
+      isAir: !touch,
+      touchAria: touch ? 'true' : 'false',
+      airAria: touch ? 'false' : 'true',
+      touchBg: touch ? '#3B5BFF' : 'transparent',
+      touchFg: touch ? '#FFFFFF' : '#A3A9B7',
+      airBg: touch ? 'transparent' : '#3B5BFF',
+      airFg: touch ? '#A3A9B7' : '#FFFFFF',
+      setTouch: () => this.setState({ mode: 'touch', pressing: false, airOn: false }),
+      setAir: () => { this.g.target = 0; this.setState({ mode: 'air', pressing: false, airOn: false }); },
+      color: s.color,
+      swatches: colors.map((o) => ({
+        c: o.c,
+        label: 'Laser ' + o.n,
+        aria: s.color === o.c ? 'true' : 'false',
+        ring: s.color === o.c ? '0 0 0 2px #FFFFFF, 0 0 0 5px #0D1017, 0 0 0 6.5px #EDEDED' : '0 0 0 2px #FFFFFF',
+        pick: () => { this.setState({ color: o.c }); this.kick(); }
+      })),
+      lxp: (s.lx * 100).toFixed(1) + '%',
+      lyp: (s.ly * 100).toFixed(1) + '%',
+      dotOp: lit ? '1' : '0.35',
+      setCanvas: this.setCanvas,
+      down: this.down,
+      move: this.move,
+      up: this.up,
+      idle: !s.pressing,
+      airOn: s.airOn,
+      airDown: () => this.setState({ airOn: true }),
+      airUp: () => { if (this.state.airOn) this.setState({ airOn: false }); },
+      airBtnBg: s.airOn ? '#FFFFFF' : '#EDEDED',
+      holdLabel: s.airOn ? 'Laser aktif' : 'Tahan'
+    };
+  }
+}
+</script>
+</body>
+</html>

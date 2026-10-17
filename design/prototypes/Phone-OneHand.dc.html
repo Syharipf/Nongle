@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Nongle HP — Remote satu tangan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0;background:#0D1017}
+a{color:#A3A9B7}a:hover{color:#EDEDED}
+.surf{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;touch-action:none}
+.ripw{position:absolute;width:0;height:0;pointer-events:none}
+.rip{position:absolute;left:-36px;top:-36px;width:72px;height:72px;border-radius:50%;border:1.5px solid currentColor;box-sizing:border-box;animation:rip .8s cubic-bezier(.15,.6,.3,1) forwards}
+.rip-s{border:none;border-right:2px solid currentColor;animation-name:rips;animation-duration:.9s}
+.rip-out{animation-duration:.55s}
+@keyframes rip{from{transform:scale(.15);opacity:.9}to{transform:scale(2.4);opacity:0}}
+@keyframes rips{from{transform:translateX(-6px) scale(.35,.5);opacity:.95}to{transform:translateX(34px) scale(1.1,2.1);opacity:0}}
+.flash{position:absolute;left:0;right:0;top:44%;text-align:center;font-weight:600;font-size:40px;letter-spacing:-0.03em;color:#EDEDED;pointer-events:none;animation:flash .7s ease-out forwards}
+@keyframes flash{0%{opacity:0;transform:scale(.92)}20%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translateY(-14px)}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0D1017; color: #EDEDED; font-family: 'Geist', system-ui, sans-serif; box-sizing: border-box; padding: 56px 16px 12px; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+  <div style="display: flex; flex-direction: column; gap: 10px; padding: 0 6px">
+    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #8C93A3">
+      <span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #30D158"></span>Terhubung · <span style="font-family: 'Geist Mono', monospace">41 ms</span></span>
+      <span>{{blackHint}}</span>
+    </div>
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <span style="font-family: 'Geist Mono', monospace; font-weight: 500; font-size: 64px; line-height: 1; letter-spacing: -0.04em">{{time}}</span>
+      <span style="font-family: 'Geist Mono', monospace; font-weight: 500; font-size: 30px; letter-spacing: -0.03em">{{slide}}<span style="color: #6F7687">/{{total}}</span></span>
+    </div>
+    <div style="height: 3px; border-radius: 999px; background: #232836; overflow: hidden">
+      <div style="height: 100%; width: {{progress}}; background: #3B5BFF"></div>
+    </div>
+  </div>
+
+  <div class="surf" role="group" aria-label="Area gesture: tap untuk next, geser ke kanan untuk sebelumnya, tahan untuk laser, geser ke bawah untuk layar hitam" onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerCancel="{{cancel}}" style="position: relative; flex: 1; border-radius: 28px; background: {{surfBg}}; box-shadow: {{surfRing}}; overflow: hidden; cursor: pointer">
+    <sc-if value="{{idle}}" hint-placeholder-val="{{ true }}">
+      <div style="position: absolute; left: 0; right: 0; top: 38%; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3B5BFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+        <div style="font-size: 15px; color: #8C93A3">{{idleText}}</div>
+      </div>
+    </sc-if>
+
+    <sc-for list="{{ripples}}" as="r" hint-placeholder-count="0">
+      <div class="ripw" style="left: {{r.left}}; top: {{r.top}}; transform: rotate({{r.rot}}); color: {{r.c}}">
+        <div class="{{r.cls}}"></div>
+      </div>
+    </sc-for>
+
+    <sc-for list="{{flashes}}" as="f" hint-placeholder-count="0">
+      <div class="flash">{{f.text}}</div>
+    </sc-for>
+
+    <sc-if value="{{laser}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; left: {{fxp}}; top: {{fyp}}; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; background: rgba(255,45,85,0.08); border: 1.5px solid rgba(255,255,255,0.3); box-sizing: border-box; display: flex; align-items: center; justify-content: center; pointer-events: none">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FF2D55; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 3.5px rgba(0,0,0,0.6)"></span>
+      </div>
+      <div style="position: absolute; top: 18px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 500; color: #FF6B86; pointer-events: none">Laser aktif · lepas untuk mematikan</div>
+    </sc-if>
+
+    <div style="position: absolute; left: 20px; right: 20px; bottom: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; font-size: 12px; color: #8C93A3; pointer-events: none">
+      <span><span style="color: #C5CAD5">Tap</span> · next</span>
+      <span><span style="color: #C5CAD5">Geser →</span> · sebelumnya</span>
+      <span><span style="color: #C5CAD5">Tahan</span> · laser</span>
+      <span><span style="color: #C5CAD5">Geser ↓</span> · layar hitam</span>
+    </div>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; padding: 0 6px">
+    <a href="Phone-Remote.dc.html" style="min-height: 44px; display: flex; align-items: center; font-size: 13px; text-decoration: none">Mode tombol</a>
+    <a href="Phone-Pointer.dc.html" style="min-height: 44px; display: flex; align-items: center; font-size: 13px; text-decoration: none">Air pointer</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { slide: 12, total: 24, sec: 522, black: false, laser: false, fx: 0, fy: 0, ripples: [], flashes: [] };
+    this._id = 0; this._down = false;
+    this.down = this.down.bind(this);
+    this.move = this.move.bind(this);
+    this.up = this.up.bind(this);
+    this.cancel = this.cancel.bind(this);
+  }
+  componentDidMount() {
+    this._t = setInterval(() => this.setState({ sec: this.state.sec + 1 }), 1000);
+  }
+  componentWillUnmount() { clearInterval(this._t); clearTimeout(this._hold); }
+  pt(e) {
+    var el = e.currentTarget, r = el.getBoundingClientRect();
+    var s = el.offsetWidth ? r.width / el.offsetWidth : 1;
+    return { x: (e.clientX - r.left) / s, y: (e.clientY - r.top) / s };
+  }
+  buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+  addRip(list, x, y, deg, cls, c) {
+    var id = ++this._id;
+    var next = list.concat([{ id: id, left: Math.round(x) + 'px', top: Math.round(y) + 'px', rot: Math.round(deg) + 'deg', cls: cls, c: c }]);
+    if (next.length > 18) next = next.slice(next.length - 18);
+    setTimeout(() => { this.setState({ ripples: this.state.ripples.filter(function (q) { return q.id !== id; }) }); }, 950);
+    return next;
+  }
+  flash(text) {
+    var id = ++this._id;
+    setTimeout(() => { this.setState({ flashes: this.state.flashes.filter(function (q) { return q.id !== id; }) }); }, 720);
+    return [{ id: id, text: text }];
+  }
+  down(e) {
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {}
+    var p = this.pt(e);
+    this._start = p; this._last = p; this._rp = p; this._rt = Date.now();
+    this._down = true; this._moved = false;
+    clearTimeout(this._hold);
+    this._hold = setTimeout(() => {
+      if (this._down && !this._moved) {
+        this.buzz(15);
+        var l = this._last;
+        this.setState({ laser: true, fx: l.x, fy: l.y, ripples: this.addRip(this.state.ripples, l.x, l.y, 0, 'rip', '#FF2D55') });
+      }
+    }, 380);
+  }
+  move(e) {
+    if (!this._down) return;
+    var p = this.pt(e), s = this._start;
+    if (Math.abs(p.x - s.x) > 10 || Math.abs(p.y - s.y) > 10) this._moved = true;
+    if (this.state.laser) {
+      var ripples = this.state.ripples, rp = this._rp, now = Date.now();
+      var dx = p.x - rp.x, dy = p.y - rp.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 18 && now - this._rt > 40) {
+        ripples = this.addRip(ripples, p.x, p.y, Math.atan2(dy, dx) * 180 / Math.PI, 'rip rip-s', '#FF2D55');
+        this._rp = p; this._rt = now;
+      }
+      this.setState({ fx: p.x, fy: p.y, ripples: ripples });
+    }
+    this._last = p;
+  }
+  up() {
+    if (!this._down) return;
+    this._down = false;
+    clearTimeout(this._hold);
+    var p = this._last, s = this._start, st = this.state;
+    if (st.laser) {
+      this.setState({ laser: false, ripples: this.addRip(st.ripples, p.x, p.y, 0, 'rip rip-out', '#FF2D55') });
+      return;
+    }
+    var dx = p.x - s.x, dy = p.y - s.y, adx = Math.abs(dx), ady = Math.abs(dy), now = Date.now();
+    if (now - (this._act || 0) < 220) return;
+    var deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (adx > 56 && adx > ady) {
+      this._act = now;
+      if (dx > 0) {
+        if (st.slide <= 1) { this.buzz([10, 50, 10, 50, 10]); this.setState({ flashes: this.flash('Slide pertama') }); return; }
+        this.buzz([10, 60, 10]);
+        this.setState({ slide: st.slide - 1, flashes: this.flash('Sebelumnya'), ripples: this.addRip(st.ripples, p.x, p.y, deg, 'rip rip-s', '#EDEDED') });
+      } else {
+        this.goNext(p, deg, 'rip rip-s');
+      }
+    } else if (dy > 56 && ady > adx) {
+      this._act = now;
+      this.buzz(30);
+      this.setState({ black: !st.black, flashes: this.flash(st.black ? 'Layar kembali' : 'Layar hitam'), ripples: this.addRip(st.ripples, p.x, p.y, deg, 'rip rip-s', '#EDEDED') });
+    } else if (adx < 12 && ady < 12) {
+      this._act = now;
+      this.goNext(p, 0, 'rip');
+    }
+  }
+  goNext(p, deg, cls) {
+    var st = this.state;
+    if (st.slide >= st.total) { this.buzz([10, 50, 10, 50, 10]); this.setState({ flashes: this.flash('Slide terakhir') }); return; }
+    this.buzz(10);
+    this.setState({ slide: st.slide + 1, flashes: this.flash('Next'), ripples: this.addRip(st.ripples, p.x, p.y, deg, cls, '#EDEDED') });
+  }
+  cancel() {
+    this._down = false;
+    clearTimeout(this._hold);
+    if (this.state.laser) this.setState({ laser: false });
+  }
+  renderVals() {
+    var s = this.state;
+    var m = Math.floor(s.sec / 60), sec = s.sec % 60;
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    return {
+      time: pad(m) + ':' + pad(sec),
+      slide: s.slide,
+      total: s.total,
+      progress: Math.round((s.slide / s.total) * 100) + '%',
+      blackHint: s.black ? 'Proyektor hitam' : '',
+      surfBg: s.black ? '#05070C' : '#161B27',
+      surfRing: s.black ? 'inset 0 0 0 1.5px #343B4D' : 'none',
+      idle: !s.laser && s.flashes.length === 0 && s.ripples.length === 0,
+      idleText: s.black ? 'Geser ↓ lagi untuk menampilkan slide' : 'Tap di mana saja untuk next',
+      ripples: s.ripples,
+      flashes: s.flashes,
+      laser: s.laser,
+      fxp: Math.round(s.fx) + 'px',
+      fyp: Math.round(s.fy) + 'px',
+      down: this.down,
+      move: this.move,
+      up: this.up,
+      cancel: this.cancel
+    };
+  }
+}
+</script>
+</body>
+</html>

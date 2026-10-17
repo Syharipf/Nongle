@@ -63,6 +63,11 @@ export function createServer(customPort = PORT) {
         try {
           const msg = JSON.parse(raw.toString()) as Record<string, unknown>;
 
+          if (msg.type === 'PING') {
+            ws.send(JSON.stringify({ type: 'PONG', ts: msg.ts }));
+            return;
+          }
+
           if (msg.type === 'CREATE_ROOM') {
             const roomId = crypto.randomBytes(3).toString('hex').toUpperCase();
             ws.data.boundRoomId = roomId;

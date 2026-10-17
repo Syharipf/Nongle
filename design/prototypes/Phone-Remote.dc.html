@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Nongle HP — Remote</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+<style>
+body{margin:0;background:#0D1017}
+a{color:#EDEDED}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0D1017; color: #EDEDED; font-family: 'Geist', system-ui, sans-serif; box-sizing: border-box; padding: 56px 16px 20px; display: flex; flex-direction: column; gap: 10px; overflow: hidden">
+  <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding-left: 4px">
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #A3A9B7">
+      <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #30D158"></span>
+      Terhubung
+      <span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #8C93A3">41 ms</span>
+    </div>
+    <button type="button" aria-label="Menu sesi" style="width: 44px; height: 44px; border-radius: 12px; border: none; background: #171B24; color: #EDEDED; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>
+    </button>
+  </div>
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; padding: 14px 4px 4px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="font-size: 13px; color: #8C93A3">{{timerCaption}}</div>
+      <div style="font-family: 'Geist Mono', monospace; font-weight: 500; font-size: 60px; line-height: 1; letter-spacing: -0.04em; color: {{timerColor}}">{{time}}</div>
+    </div>
+    <button type="button" onClick="{{toggleRun}}" aria-label="{{runLabel}}" style="width: 48px; height: 48px; border-radius: 50%; border: none; background: #171B24; color: #EDEDED; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <sc-if value="{{running}}" hint-placeholder-val="{{ true }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+      </sc-if>
+      <sc-if value="{{paused}}" hint-placeholder-val="{{ false }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l12-7z"></path></svg>
+      </sc-if>
+    </button>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 4px 10px">
+    <div style="display: flex; justify-content: space-between; font-size: 13px; color: #8C93A3">
+      <span>Slide</span>
+      <span style="font-family: 'Geist Mono', monospace; color: #EDEDED">{{slide}} / {{total}}</span>
+    </div>
+    <div style="height: 3px; border-radius: 999px; background: #232836; overflow: hidden">
+      <div style="height: 100%; width: {{progress}}; background: #3B5BFF"></div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+    <a href="Phone-Pointer.dc.html" style="min-height: 64px; border-radius: 18px; background: #171B24; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 500; font-size: 15px">
+      <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #FF2D55; box-shadow: 0 0 0 2px #FFFFFF"></span>
+      Laser
+    </a>
+    <button type="button" aria-pressed="{{blackAria}}" onClick="{{toggleBlack}}" style="min-height: 64px; border-radius: 18px; border: none; background: {{blackBg}}; color: {{blackFg}}; font: inherit; font-weight: 500; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer">
+      <span aria-hidden="true" style="width: 16px; height: 11px; border-radius: 3px; border: 1.5px solid currentColor; background: {{blackSwatch}}"></span>
+      {{blackLabel}}
+    </button>
+  </div>
+
+  <button type="button" onClick="{{prev}}" aria-label="Slide sebelumnya" style="min-height: 76px; border-radius: 20px; border: none; background: #171B24; color: #EDEDED; font: inherit; font-weight: 500; font-size: 17px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"></path></svg>
+    Sebelumnya
+  </button>
+
+  <button type="button" onClick="{{next}}" aria-label="Slide berikutnya" style="flex: 1; min-height: 200px; border-radius: 28px; border: none; background: #3B5BFF; color: #FFFFFF; font: inherit; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer">
+    <span style="font-weight: 600; font-size: 30px; letter-spacing: -0.03em">Next</span>
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+  </button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { slide: 12, total: 24, sec: 522, running: true, black: false };
+  }
+  componentDidMount() {
+    this._t = setInterval(() => { if (this.state.running) this.setState({ sec: this.state.sec + 1 }); }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    var s = this.state;
+    var m = Math.floor(s.sec / 60), sec = s.sec % 60;
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    var buzz = function () { try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) {} };
+    return {
+      time: pad(m) + ':' + pad(sec),
+      timerCaption: s.running ? 'Durasi' : 'Dijeda',
+      timerColor: s.running ? '#EDEDED' : '#8C93A3',
+      running: s.running,
+      paused: !s.running,
+      runLabel: s.running ? 'Jeda timer' : 'Lanjutkan timer',
+      toggleRun: () => this.setState({ running: !s.running }),
+      slide: s.slide,
+      total: s.total,
+      progress: Math.round((s.slide / s.total) * 100) + '%',
+      blackAria: s.black ? 'true' : 'false',
+      blackBg: s.black ? '#EDEDED' : '#171B24',
+      blackFg: s.black ? '#0D1017' : '#EDEDED',
+      blackSwatch: s.black ? '#0D1017' : 'transparent',
+      blackLabel: s.black ? 'Layar hitam aktif' : 'Layar hitam',
+      toggleBlack: () => { buzz(); this.setState({ black: !s.black }); },
+      next: () => { buzz(); this.setState({ slide: Math.min(s.total, s.slide + 1) }); },
+      prev: () => { buzz(); this.setState({ slide: Math.max(1, s.slide - 1) }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
