@@ -109,13 +109,12 @@
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 24px;">
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #30D158;">
-        <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #30D158;"></span>
-        Terhubung ke laptop
+      <div id="c-status-row" style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #E5A100;">
+        <span id="c-status-dot" aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #E5A100;"></span>
+        <span id="c-status-text">Menghubungkan ke laptop...</span>
       </div>
-      <h1 style="margin: 0; font-weight: 600; font-size: 34px; line-height: 1.05; letter-spacing: -0.035em;">Siap jadi remote</h1>
-      <div id="c-slide-meta" style="font-size: 15px; color: #8C93A3;">Slide terhubung</div>
-    </div>
+      <h1 id="c-title" style="margin: 0; font-weight: 600; font-size: 34px; line-height: 1.05; letter-spacing: -0.035em;">Menghubungkan...</h1>
+      <div id="c-slide-meta" style="font-size: 15px; color: #8C93A3;">Mencari room di laptop...</div>
 
     <div style="background: #171B24; border-radius: 18px; padding: 0 16px;">
       <div style="display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid #252B38;">
@@ -447,6 +446,14 @@
     function handleIncoming(msg) {
       if (msg.type === 'ROOM_JOINED') {
         document.getElementById('c-room-code').textContent = roomId;
+        const statusRow = document.getElementById('c-status-row');
+        const statusDot = document.getElementById('c-status-dot');
+        const statusText = document.getElementById('c-status-text');
+        const title = document.getElementById('c-title');
+        if (statusRow) statusRow.style.color = '#30D158';
+        if (statusDot) statusDot.style.background = '#30D158';
+        if (statusText) statusText.textContent = 'Terhubung ke laptop';
+        if (title) title.textContent = 'Siap jadi remote';
         if (msg.state) {
           currentSlide = msg.state.currentSlide || 1;
           totalSlides = msg.state.totalSlides || 1;
@@ -482,11 +489,19 @@
 
     function connectPeer(code) {
       try { if (peer) peer.destroy(); } catch (_) {}
-      peer = new Peer();
+      const peerConfig = {
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ]
+        }
+      };
+      peer = new Peer(peerConfig);
       peer.on('open', () => {
         const targetPeerId = 'nongle-' + code.toLowerCase();
         peerConn = peer.connect(targetPeerId);
-
         peerConn.on('open', () => {
           document.getElementById('r-ping').textContent = 'P2P';
           document.getElementById('oh-ping').textContent = 'P2P';
@@ -1087,6 +1102,8 @@
 
     // Init
     if (roomId) {
+      document.getElementById('c-room-code').textContent = roomId;
+      showView('connect');
       connect(roomId);
     } else {
       showView('join');
